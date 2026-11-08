@@ -1,0 +1,25 @@
+{# a file of the workspace over the page, read from its computer when opened: Markdown as it reads, other text as it is, its lines numbered #}
+<div class="overlay" x-data @keydown.escape.window="$el.remove()">
+  <div class="backdrop" @click="$el.parentElement.remove()"></div>
+  <aside class="drawer file" role="dialog" aria-labelledby="file-title">
+    <div class="d-hd">
+      {% include "agents/icons/file-text.svg" %}<h3 id="file-title">{{ name }}</h3>
+      {% if file %}<span class="meta">{% if language and coloured is not none %}{{ language }} · {% endif %}{{ file.size | size }} · {{ file.modified_at_ms | clock }}</span>{% endif %}
+      <button class="icon-btn close" type="button" @click="$el.closest('.overlay').remove()" aria-label="{{ t.text('agents.close') }}">{% include "agents/icons/x.svg" %}</button>
+    </div>
+    {% if file %}
+    <div class="fpath" x-data="{ copied: false }"><span>{{ t.text("agents.workspace.on", {"computer": row.computer.name}) }}</span><span class="mono" x-ref="where">{{ where }}</span><button class="copy" type="button" @click="navigator.clipboard?.writeText($refs.where.textContent); copied = true">{% include "agents/icons/copy.svg" %}<span x-show="!copied">{{ t.text("agents.workspace.copy") }}</span><span x-show="copied" x-cloak>{{ t.text("agents.workspace.copied") }}</span></button></div>
+    {% endif %}
+    <div class="d-bd">
+      {% if file is none %}
+      <p class="hint">{{ t.text("agents.workspace.unanswered", {"computer": row.computer.name}) if row.online else t.text("agents.workspace.away", {"computer": row.computer.name if row.computer else "—"}) }}</p>
+      {% elif file.content is none %}
+      <div class="unread">{% include "agents/icons/file.svg" %}<b>{{ t.text("agents.workspace.unviewable") }}</b><span>{{ t.text("agents.workspace.unviewable_why") }}</span></div>
+      {% elif coloured is none %}
+      <div class="prose">{{ file.content | markdown }}</div>
+      {% else %}
+      <div class="code view"><span class="gutter" aria-hidden="true">{{ range(1, coloured.count("\n") + 1) | join("\n") }}</span><code>{{ coloured }}</code></div>
+      {% endif %}
+    </div>
+  </aside>
+</div>

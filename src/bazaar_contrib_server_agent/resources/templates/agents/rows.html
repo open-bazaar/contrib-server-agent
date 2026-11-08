@@ -1,0 +1,20 @@
+{% import "agents/macros.html" as m with context %}
+{% for row in rows %}
+{% set short = ref(row.kept.agent.id) %}
+{# the name's link covers the row, all but its menu #}
+<div class="tr row{% if not row.online %} away{% endif %}">
+  <div class="ag">{{ m.avatar(row.kept.agent) }}<div><a class="stretch" href="/ui/agents/{{ short }}"><b>{{ row.kept.agent.name }}</b></a><span>{{ t.text("agents.mode." ~ row.kept.agent.mode) }}</span></div></div>
+  <span>{{ m.status(row) }}</span>
+  {{ m.channels(row) }}
+  {{ m.runtimes(row) }}
+  <span class="pcname"><span class="online{% if not row.online %} off{% endif %}">{{ row.computer.name if row.computer else "—" }}</span></span>
+  {{ m.usage(row) }}
+  <div class="acts">
+    <div x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
+      <button class="more" type="button" :aria-expanded="open" @click="open = !open" hx-get="/ui/agents/{{ short }}/menu" hx-trigger="click once" hx-target="next .pop" hx-swap="innerHTML" aria-label="{{ t.text('agents.actions') }}">{% include "agents/icons/ellipsis.svg" %}</button>
+      <div class="pop" x-show="open" x-cloak></div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% if more and rows %}<div class="more-rows" hx-get="/ui/agents/more?after={{ ref(rows[-1].kept.agent.id) }}" hx-include="closest .content" hx-trigger="revealed" hx-swap="outerHTML"></div>{% endif %}

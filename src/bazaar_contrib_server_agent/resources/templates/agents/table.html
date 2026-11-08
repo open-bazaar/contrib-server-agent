@@ -1,0 +1,14 @@
+{# the list; a change to what it shows draws it again with the filters as they are #}
+<div id="table" class="card tbl">
+  {% if refresh %}<span id="count" class="count" hx-swap-oob="true">{{ t.text("agents.counted", {"total": total, "working": working}) }}</span>{% endif %}
+  <span hidden data-topic="agents.list" data-seen='{{ seen | tojson }}' hx-get="/ui/agents/table" hx-include="closest .content" hx-trigger="bazaar:change, agents:removed from:body" hx-target="#table" hx-swap="outerHTML"></span>
+  {% if rows %}
+  <div class="tr h"><span>{{ t.text("agents.column.agent") }}</span><span>{{ t.text("agents.column.status") }}</span><span>{{ t.text("agents.column.channel") }}</span><span>{{ t.text("agents.column.runtime") }}</span><span>{{ t.text("agents.column.computer") }}</span><span>{{ t.text("agents.column.usage") }}</span><span></span></div>
+  {% include "agents/rows.html" %}
+  {% else %}
+  <div class="empty-list">
+    <span>{{ t.text("agents.unmatched" if total else "agents.none") }}</span>
+    {% if create and not total %}<a class="btn primary" href="/ui/agents/new">{% include "agents/icons/plus.svg" %}{{ t.text("agents.create") }}</a>{% endif %}
+  </div>
+  {% endif %}
+</div>

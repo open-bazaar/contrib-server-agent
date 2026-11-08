@@ -1,0 +1,62 @@
+{# an agent's face: the first letter of its name on its own colour #}
+{% macro avatar(agent, size="sm") %}<div class="av {{ size }} sq {{ agent.name | tint }}">{{ agent.name[:1] | upper }}</div>{% endmacro %}
+
+{# a plugin's logo, standing for its name; a puzzle piece for a kind without one #}
+{% macro logo(kind) %}<span class="g {{ kind }}">{% include ["agents/logos/" ~ kind ~ ".svg", "agents/icons/puzzle.svg"] %}</span>{% endmacro %}
+
+{# how an agent is: at work for how long, idle, failed and why, or only a lantern while its computer is away #}
+{% macro status(row) %}
+{% set state = row.state %}
+{% if state == "working" %}<span class="status work"><span class="lantern work"></span>{{ row.activity.working.since_ms | lasted }}</span>
+{% elif state == "failed" %}<span class="status fail st-e"><span class="lantern fail"></span>{{ row.activity.reason or t.text("agents.state.failed") }}</span>
+{% elif state == "offline" %}<span class="status off" title="{{ t.text('agents.state.offline') }}"><span class="lantern off"></span></span>
+{% else %}<span class="status on"><span class="lantern on"></span>{{ t.text("agents.idle") }}</span>{% endif %}
+{% endmacro %}
+
+{# where an agent talks: a line a channel, its logo and the bot's name as its connection reported it #}
+{% macro channels(row) %}
+<div class="prov">
+  {% for provider in row.kept.agent.channel %}
+  {% set link = (row.activity.channels | selectattr("connection", "equalto", provider.connection) | first | default(none)) if row.activity else none %}
+  <span class="p">{{ logo(provider.kind) }}<b>{{ (link.identity.name or link.identity.id) if link and link.identity else "—" }}</b></span>
+  {% else %}<span class="p none">—</span>{% endfor %}
+</div>
+{% endmacro %}
+
+{# what an agent runs on, in the order it tries them: the first in use, the rest standing by #}
+{% macro runtimes(row) %}
+<div class="prov">
+  {% for provider in row.kept.agent.harness %}
+  <span class="p{% if not loop.first %} alt{% endif %}">{{ logo(provider.kind) }}<b>{{ provider["values"].get("model") or t.text("agents.model.default") }}</b>{% if not loop.first %}<em>{{ t.text("agents.standby") }}</em>{% endif %}</span>
+  {% else %}<span class="p none">—</span>{% endfor %}
+</div>
+{% endmacro %}
+
+{# today's tokens and what they cost #}
+{% macro usage(row) %}
+{% if row.activity and (row.activity.usage.input or row.activity.usage.output) %}
+<div class="use"><b>{{ (row.activity.usage.input + row.activity.usage.output) | tokens }}</b>{% if row.activity.usage.cost is not none %}<small>${{ "%.2f" | format(row.activity.usage.cost) }}</small>{% endif %}</div>
+{% else %}<div class="use none">—</div>{% endif %}
+{% endmacro %}
+
+{# a channel of the draft by the bot its connection reported, else its first value; a runtime by its model #}
+{% macro headline(row, label, item) -%}
+{% if label == "harness" %}{{ item["values"].get("model") or t.text("agents.model.default") }}
+{%- else %}{% set link = (row.activity.channels | selectattr("connection", "equalto", item.connection) | first | default(none)) if row and row.activity and item.connection else none %}{{ (link.identity.name or link.identity.id) if link and link.identity else (item["values"].values() | select("string") | first | default("—")) }}{% endif %}
+{%- endmacro %}
+
+{# what else an item holds, in its plugin's words: values worded where the plugin words them, efforts after their field's name, credentials only as saved, typed or how an empty one runs #}
+{% macro summary(schema, item) -%}
+{% set parts = [] %}
+{% for name, field in (schema.get("properties") or {}).items() %}
+{% set value = item["values"].get(name) %}
+{% if field.get("writeOnly") %}
+{% if name in item.new %}{% set _ = parts.append(t.text("agents.secret.typed", {"name": schema | word(name ~ ".title", name)})) %}
+{% elif name in item.secrets %}{% set _ = parts.append(t.text("agents.secret.saved_named", {"name": schema | word(name ~ ".title", name)})) %}
+{% elif schema | word(name ~ ".empty") %}{% set _ = parts.append(schema | word(name ~ ".empty")) %}{% endif %}
+{% elif field.get("x-inspect") == "models" or value is none or value == "" %}
+{% elif field.get("x-inspect") == "efforts" %}{% set _ = parts.append((schema | word(name ~ ".title", name)) ~ " " ~ (schema | word(name ~ "." ~ value, value | string))) %}
+{% else %}{% set _ = parts.append(schema | word(name ~ "." ~ value, value | string)) %}{% endif %}
+{% endfor %}
+{{- parts | join(" · ") -}}
+{%- endmacro %}

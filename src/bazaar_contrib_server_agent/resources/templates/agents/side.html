@@ -1,0 +1,17 @@
+{# beside the config form, named as the agent is now: drawn again over the old one once a save renames it #}
+<div id="cfgside" class="stack"{% if saved %} hx-swap-oob="true"{% endif %}>
+  <div class="card">
+    <div class="card-hd"><h3>{{ t.text("agents.config.after") }}</h3></div>
+    <div class="after">
+      <div>{% include "agents/icons/check.svg" %}<span>{{ t.text("agents.config.after_restart", {"computer": row.computer.name, "name": row.kept.agent.name}) }}</span></div>
+      <div>{% include "agents/icons/key-round.svg" %}<span>{{ t.text("agents.config.after_secrets", {"computer": row.computer.name}) }}</span></div>
+    </div>
+  </div>
+  {% if row.delete %}
+  <div class="card danger-card">
+    <div class="card-hd"><h3>{{ t.text("agents.config.delete") }}</h3></div>
+    <p>{{ t.text("agents.remove.hint", {"name": row.kept.agent.name, "computer": row.computer.name}) }}</p>
+    <button class="btn danger-o" type="button" hx-get="/ui/agents/{{ ref(row.kept.agent.id) }}/remove" hx-target="#drawer" hx-swap="innerHTML">{% include "agents/icons/trash-2.svg" %}{{ t.text("agents.config.delete_named", {"name": row.kept.agent.name}) }}</button>
+  </div>
+  {% endif %}
+</div>

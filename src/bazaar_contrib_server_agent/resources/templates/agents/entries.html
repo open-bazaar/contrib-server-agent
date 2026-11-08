@@ -1,0 +1,29 @@
+{% set short = ref(row.kept.agent.id) %}
+{# a page of a directory's entries at their depth, folders first: a folder reads the level under it the first time it opens; past the page, the rest come a page at a time #}
+{% if directory is none %}
+<div class="fr none" style="--depth: {{ depth }}"><span class="nm">{{ t.text("agents.workspace.unanswered", {"computer": row.computer.name if row.computer else "—"}) }}</span></div>
+{% elif not directory.total %}
+<div class="fr none" style="--depth: {{ depth }}"><span class="nm">{{ t.text("agents.workspace.empty") }}</span></div>
+{% else %}
+{% for entry in directory.entries %}
+{% set path = (directory.path ~ "/" if directory.path else "") ~ entry.name %}
+{% if entry.directory %}
+<div x-data="{ open: false }">
+  <button class="fr dir" type="button" style="--depth: {{ depth }}" :class="open && 'open'" :aria-expanded="open" @click="open = !open" hx-get="/ui/agents/{{ short }}/workspace?path={{ path | urlencode }}&depth={{ depth + 1 }}" hx-trigger="click once" hx-target="next .kids" hx-swap="innerHTML">
+    <span class="nm"><span class="tw">{% include "agents/icons/chevron-right.svg" %}</span>{% include "agents/icons/folder.svg" %}<span class="label">{{ entry.name }}</span></span><span class="sz">—</span><span class="tm">{{ entry.modified_at_ms | clock }}</span>
+  </button>
+  <div class="kids" x-show="open"></div>
+</div>
+{% else %}
+<button class="fr" type="button" style="--depth: {{ depth }}" hx-get="/ui/agents/{{ short }}/file?path={{ path | urlencode }}&root={{ directory.root | urlencode }}" hx-target="#drawer" hx-swap="innerHTML">
+  <span class="nm">{% include "agents/icons/file.svg" %}<span class="label">{{ entry.name }}</span></span><span class="sz">{{ entry.size | size }}</span><span class="tm">{{ entry.modified_at_ms | clock }}</span>
+</button>
+{% endif %}
+{% endfor %}
+{% set listed = offset + directory.entries | length %}
+{% if listed < directory.total %}
+<button class="fr more" type="button" style="--depth: {{ depth }}" hx-get="/ui/agents/{{ short }}/workspace?path={{ directory.path | urlencode }}&depth={{ depth }}&offset={{ listed }}" hx-swap="outerHTML">
+  <span class="nm">{{ t.text("agents.workspace.more") }}<small>{{ t.text("agents.workspace.left", {"listed": listed, "left": directory.total - listed}) }}</small></span><span></span><span></span>
+</button>
+{% endif %}
+{% endif %}

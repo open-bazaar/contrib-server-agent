@@ -1,0 +1,25 @@
+{% extends "server/base.html" %}
+{% block title %}{{ t.text("agents.title") }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('agents.css') }}">{% endblock %}
+{% block crumbs %}<span id="count" class="count">{{ t.text("agents.counted", {"total": total, "working": working}) }}</span>{% endblock %}
+{% block actions %}{% if create %}<a class="btn primary" href="/ui/agents/new">{% include "agents/icons/plus.svg" %}{{ t.text("agents.create") }}</a>{% endif %}{% endblock %}
+{% block body %}
+<section class="content">
+  {# a change of filter draws the table again #}
+  <form class="filters" hx-get="/ui/agents/table" hx-target="#table" hx-swap="outerHTML" hx-trigger="input changed delay:300ms from:input[name=q], change">
+    <label class="input search">{% include "agents/icons/search.svg" %}<input name="q" value="{{ query }}" placeholder="{{ t.text('agents.search') }}" autocomplete="off"></label>
+    <div class="seg" role="radiogroup">
+      {% for one in states %}
+      <label class="{% if one == state %}on{% endif %}"><input type="radio" name="state" value="{{ one }}"{% if one == state %} checked{% endif %}>{% if one != "all" %}<i class="lantern {{ {'working': 'work', 'failed': 'fail', 'offline': 'off'}[one] }}"></i>{% endif %}{{ t.text("agents.state." ~ one) }}</label>
+      {% endfor %}
+    </div>
+    <label class="sel">{% include "agents/icons/monitor.svg" %}<select name="computer">
+      <option value="">{{ t.text("agents.computer.all") }}</option>
+      {% for computer in computers %}<option value="{{ ref(computer.id) }}"{% if ref(computer.id) == chosen %} selected{% endif %}>{{ computer.name }}</option>{% endfor %}
+    </select></label>
+  </form>
+  {% include "agents/table.html" %}
+</section>
+{# what opens over the list: a drawer for sharing, or the question before deleting #}
+<div id="drawer"></div>
+{% endblock %}

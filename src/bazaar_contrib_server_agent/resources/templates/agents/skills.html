@@ -1,0 +1,52 @@
+{# what the agent's runtime finds for it, asked of its computer when shown: its skills by where they were found, and the MCP servers it sees; an agent running several kinds shows one kind at a time #}
+{% set inspection = inspected.inspection if inspected else none %}
+{% if kinds | length > 1 %}
+<nav class="kinds">{% for one in kinds %}{% set first = row.kept.agent.harness | selectattr("kind", "equalto", one) | first | default(none) %}<a class="{{ 'on' if one == kind }}" href="/ui/agents/{{ short }}?tab=skills&kind={{ one | urlencode }}">{{ m.logo(one) }}{{ first["values"].get("model") or t.text("agents.model.default") }}</a>{% endfor %}</nav>
+{% endif %}
+<div class="cols skills-cols">
+  <div class="stack">
+    {% if inspection is none or not inspection.available %}
+    <div class="card">
+      <div class="card-hd"><h3>{{ t.text("agents.tab.skills") }}</h3></div>
+      <p class="none">{% if not kinds %}{{ t.text("agents.skills.no_runtime") }}{% elif not row.online %}{{ t.text("agents.skills.away", {"computer": row.computer.name if row.computer else "—"}) }}{% elif inspection is none %}{{ t.text("agents.workspace.unanswered", {"computer": row.computer.name}) }}{% else %}{{ inspection.error or t.text("agents.runtime.unavailable") }}{% endif %}</p>
+    </div>
+    {% else %}
+    {% for source in ("workspace", "personal", "system") %}
+    {% set found = inspection.skills | selectattr("source", "equalto", source) | list %}
+    <div class="card">
+      <div class="card-hd">
+        <h3>{{ t.text("agents.skills." ~ source) }}</h3><span class="sub">{{ t.text("agents.skills.count", {"n": found | length}) }}</span>
+        {% if loop.first %}<span class="read">{{ m.logo(kind) }}{% if inspection.version %}{{ inspection.version }} · {% endif %}{{ t.text("agents.skills.read", {"ago": inspected.at_ms | ago}) }}</span>{% endif %}
+      </div>
+      {% if found %}
+      <div class="skills">{% for skill in found %}<div class="skill"><b class="mono">{{ skill.name }}</b><span>{{ skill.description }}</span></div>{% endfor %}</div>
+      {% else %}
+      <p class="none">{{ t.text("agents.skills.none") }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+  <div class="stack">
+    <div class="card">
+      <div class="card-hd"><h3>{{ t.text("agents.mcp.title") }}</h3>{% if inspection and inspection.available %}<span class="sub">{{ t.text("agents.skills.count", {"n": inspection.mcp_servers | length}) }}</span>{% endif %}</div>
+      {% if inspection and inspection.mcp_servers %}
+      <div class="mcp">
+        {% for server in inspection.mcp_servers %}
+        <div class="srv">
+          {# one state a server, the gravest the runtime says: a sign-in missing, a failure and its reason, the connection, then the sign-in #}
+          {% set link = server.connection %}
+          {% set failed = link is not none and link is not string %}
+          {% set tone, state = ("warn", "signed_out") if server.auth == "signed_out" else ("err", "failed") if failed else ("muted", link) if link in ("connecting", "disabled") else ("ok", link) if link == "connected" else ("ok", server.auth) if server.auth else (none, none) %}
+          <div class="srv-hd"><b>{{ server.name }}</b>{% if tone %}<span class="auth {{ tone }}">{{ t.text("agents.mcp.state." ~ state) }}</span>{% endif %}</div>
+          {% if failed %}<p class="why">{{ link.reason }}</p>{% endif %}
+          {% if server.tools %}<div class="tools">{% for tool in server.tools[:8] %}<span title="{{ tool.description or '' }}">{{ tool.name }}</span>{% endfor %}{% if server.tools | length > 8 %}<span class="more">{{ t.text("agents.mcp.more", {"n": server.tools | length - 8}) }}</span>{% endif %}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="none">{{ t.text("agents.mcp.none") }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
