@@ -1,0 +1,58 @@
+{% import "agents/macros.html" as m with context %}
+{% set short = ref(row.kept.agent.id) %}
+{% set offered = {"channel": providers.channel, "harness": providers.harness} %}
+{# the draft travels with every change and comes back drawn again: an item edited, removed or moved; saving sends it to the computer in one edit #}
+<div id="cfgbox" class="cfgbox">
+<form id="cfg" class="card cfgform" hx-post="/ui/agents/{{ short }}/config" hx-target="#cfgbox" hx-swap="outerHTML" x-data='{ dirty: {{ dirty | tojson }}, mode: {{ drafted.mode | tojson }} }' @input="dirty = true" @keydown.enter="$event.target.tagName === 'INPUT' && $event.preventDefault()">
+  <input type="hidden" name="draft" value='{{ drafted | tojson }}'>
+  <input type="hidden" name="revision" value="{{ revision or '' }}">
+  <input type="hidden" name="order" value="">
+  <div class="sec">
+    <h4>{{ t.text("agents.config.basics") }}</h4>
+    <div class="grid2">
+      <label class="field"><span class="lbl">{{ t.text("agents.config.name") }}</span><input class="input" name="name" value="{{ drafted.name }}" required autocomplete="off"></label>
+      <label class="field"><span class="lbl">{{ t.text("agents.config.idle") }}</span><span class="input suffixed"><input name="idle_timeout" type="number" min="0" step="1" value="{{ drafted.idle_timeout | int }}"><span class="suffix">{{ t.text("agents.config.idle_unit") }}</span></span></label>
+    </div>
+    <div class="grid2">
+      <div class="field"><span class="lbl">{{ t.text("agents.config.mode") }}</span><div class="seg wide">{% for one in ("session", "dangerous_individual") %}<label><input type="radio" name="mode" value="{{ one }}" x-model="mode"><span>{{ t.text("agents.choice." ~ one) }}</span></label>{% endfor %}</div></div>
+      {# a personal assistant runs outside the sandbox: its column stays, fixed at full access #}
+      <div class="field"><span class="lbl">{{ t.text("agents.config.sandbox") }}</span><div class="seg wide" x-show="mode == 'session'">{% for one in ("workspace-write", "danger-full-access") %}<label><input type="radio" name="sandbox" value="{{ one }}"{% if drafted.sandbox == one %} checked{% endif %}><span>{{ t.text("agents.sandbox." ~ one) }}</span></label>{% endfor %}</div><div class="seg wide fixed" x-show="mode != 'session'" x-cloak aria-disabled="true">{% for one in ("workspace-write", "danger-full-access") %}<span{% if one == "danger-full-access" %} class="on"{% endif %}>{{ t.text("agents.sandbox." ~ one) }}</span>{% endfor %}</div></div>
+    </div>
+  </div>
+  {% for label in ("channel", "harness") %}
+  <div class="sec">
+    <div class="sec-hd">
+      <h4>{{ t.text("agents.config.title_" ~ label) }}<small>{{ t.text("agents.config.hint_" ~ label) }}</small></h4>
+      {# adding one: a kind the computer can run, its fields in the drawer #}
+      <div class="add" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
+        <button type="button" class="link" :aria-expanded="open" @click="open = !open">{% include "agents/icons/plus.svg" %}{{ t.text("agents.config.add_" ~ label) }}</button>
+        <div class="pop" x-show="open" x-cloak>{% for one in offered[label] %}<button type="button" hx-post="/ui/agents/{{ short }}/item" hx-include="#cfg" hx-vals='{{ {"label": label, "place": "new", "kind": one.kind} | tojson }}' hx-target="#cfgdrawer" hx-swap="innerHTML" @click="open = false">{{ m.logo(one.kind) }}{{ one.kind }}</button>{% else %}<span class="none">{{ t.text("agents.config.none_offered", {"computer": row.computer.name}) }}</span>{% endfor %}</div>
+      </div>
+    </div>
+    <div class="plist"{% if label == "harness" %} x-data="reorder"{% endif %}>
+      {% for item in drafted[label] %}
+      {% set found = offered[label] | selectattr("kind", "equalto", item.kind) | first | default(none) %}
+      <div class="prow" data-index="{{ loop.index0 }}">
+        {% if label == "harness" %}<span class="grip" @pointerdown="start($event)" aria-hidden="true">{% include "agents/icons/grip-vertical.svg" %}</span><span class="ord{% if loop.first %} on{% endif %}">{{ loop.index }}</span>{% endif %}
+        {{ m.logo(item.kind) }}<b{% if label == "harness" %} class="mono"{% endif %}>{{ m.headline(row, label, item) }}</b>
+        <span class="muted">{{ m.summary(found.json_schema if found else {}, item) }}</span>
+        <button type="button" class="ed" hx-post="/ui/agents/{{ short }}/item" hx-include="#cfg" hx-vals='{{ {"label": label, "place": loop.index0 | string} | tojson }}' hx-target="#cfgdrawer" hx-swap="innerHTML" aria-label="{{ t.text('agents.config.edit') }}">{% include "agents/icons/pencil.svg" %}</button>
+        <button type="submit" class="x" name="action" value="remove:{{ label }}:{{ loop.index0 }}" aria-label="{{ t.text('agents.remove') }}">{% include "agents/icons/trash-2.svg" %}</button>
+      </div>
+      {% else %}
+      <p class="none">{{ t.text("agents.config.empty_" ~ label) }}</p>
+      {% endfor %}
+      {% if label == "harness" %}<button type="submit" name="action" value="order:harness" hidden x-ref="moved"></button>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  <div class="cfg-ft">
+    {% if failed is not none %}<span class="errv">{{ t.text("agents.config.failed", {"computer": row.computer.name, "error": failed or t.text("agents.remove.unanswered")}) }}</span>
+    {% else %}<span class="dirty" x-show="dirty" x-cloak>{{ t.text("agents.config.dirty") }}</span>{% endif %}
+    <a class="btn" href="/ui/agents/{{ short }}?tab=config">{{ t.text("agents.cancel") }}</a>
+    <button class="btn primary" type="submit" name="action" value="save">{{ t.text("agents.config.save") }}</button>
+  </div>
+</form>
+<div id="cfgdrawer"></div>
+</div>
+{% if saved %}{% include "agents/side.html" %}{% endif %}

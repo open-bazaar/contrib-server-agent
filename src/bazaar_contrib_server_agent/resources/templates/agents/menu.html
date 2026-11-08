@@ -1,0 +1,5 @@
+{# a row's menu, as the account may use it #}
+{% set short = ref(agent_id) %}
+<a href="/ui/agents/{{ short }}?tab=config">{% include "agents/icons/settings.svg" %}{{ t.text("agents.configure" if update else "agents.open") }}</a>
+{% if share %}<button type="button" hx-get="/ui/agents/{{ short }}/share" hx-target="#drawer" hx-swap="innerHTML" @click="open = false">{% include "agents/icons/share-2.svg" %}{{ t.text("agents.share.action") }}</button>{% endif %}
+{% if delete %}<hr><button type="button" class="danger" hx-get="/ui/agents/{{ short }}/remove" hx-target="#drawer" hx-swap="innerHTML" @click="open = false">{% include "agents/icons/trash-2.svg" %}{{ t.text("agents.remove") }}</button>{% endif %}

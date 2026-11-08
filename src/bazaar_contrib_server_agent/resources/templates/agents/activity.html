@@ -1,0 +1,63 @@
+{# how the agent, each of its channels and each of its runtimes are, and today's usage, as its computer last said #}
+{% set activity = row.activity %}
+<div class="cols">
+  <div class="stack">
+    <div class="card">
+      <div class="card-hd"><h3>{{ t.text("agents.activity.state") }}</h3><span class="sub">{% if row.online %}{{ t.text("agents.activity.said", {"computer": row.computer.name}) }}{% else %}{{ t.text("agents.activity.away", {"computer": row.computer.name if row.computer else "—"}) }}{% endif %}</span><button class="more" type="button" hx-get="/ui/agents/{{ short }}?tab=activity" hx-select=".detail" hx-target=".detail" hx-swap="outerHTML" aria-label="{{ t.text('agents.refresh') }}">{% include "agents/icons/refresh-cw.svg" %}</button></div>
+      <div class="health">
+        <div class="hrow">
+          <span class="hk"><span class="lantern {{ {'working': 'work', 'failed': 'fail', 'offline': 'off'}.get(row.state, 'on') }}"></span>{{ t.text("agents.column.agent") }}</span>
+          <div class="hv">
+            <b>{{ t.text("agents.state." ~ row.state if row.state != "idle" else "agents.idle") }}{% if row.state == "working" %} · {{ activity.working.since_ms | lasted }}{% elif row.state == "failed" and activity.reason %} · {{ activity.reason }}{% endif %}</b>
+            {% if activity and activity.started_at_ms %}<span>{{ t.text("agents.activity.running", {"lasted": activity.started_at_ms | lasted, "clock": activity.started_at_ms | clock}) }}{% if activity.event_at_ms %} · {{ t.text("agents.activity.last", {"ago": activity.event_at_ms | ago}) }}{% endif %}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>{{ t.text("agents.column.channel") }}</h3><span class="sub">{{ t.text("agents.activity.channels", {"n": agent.channel | length}) }}</span></div>
+      <div class="health">
+        {% for provider in agent.channel %}
+        {% set link = (activity.channels | selectattr("connection", "equalto", provider.connection) | first | default(none)) if activity else none %}
+        <div class="hrow">
+          <span class="hk">{{ m.logo(provider.kind) }}{{ (link.identity.name or link.identity.id) if link and link.identity else provider.kind }}</span>
+          <div class="hv">
+            {% if not link or not row.online %}<b class="stbt">{{ t.text("agents.state.offline") if not row.online else "—" }}</b>
+            {% elif link.state == "running" %}<b class="okt">{% include "agents/icons/check.svg" %}{{ t.text("agents.link.running") }}</b>
+            {% elif link.state == "reconnecting" %}<b class="badt">{{ t.text("agents.link.reconnecting", {"n": link.failures}) }}</b>
+            {% elif link.state == "disconnected" %}<b class="errv">{{ t.text("agents.link.disconnected") }}</b>
+            {% else %}<b class="stbt">{{ link.state }}</b>{% endif %}
+            {% if link %}
+            <div class="hgrid">
+              <span>{{ t.text("agents.link.connected") }}</span><b>{{ link.connected_at_ms | clock if link.connected_at_ms else "—" }}</b>
+              <span>{{ t.text("agents.link.received") }}</span><b>{{ link.received_at_ms | ago if link.received_at_ms else "—" }}</b>
+              <span>{{ t.text("agents.link.error") }}</span><b class="{{ 'errv' if link.error else 'muted' }}">{{ link.error or t.text("agents.link.no_error") }}</b>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>{{ t.text("agents.column.runtime") }}</h3><span class="sub">{{ t.text("agents.activity.order") }}</span></div>
+      <div class="health" hx-get="/ui/agents/{{ short }}/runtimes" hx-trigger="load" hx-swap="innerHTML">
+        {% for provider in agent.harness %}<div class="hrow"><span class="hk"><span class="ord{% if loop.first %} on{% endif %}">{{ loop.index }}</span>{{ m.logo(provider.kind) }}<span class="mono">{{ provider["values"].get("model") or t.text("agents.model.default") }}</span></span><div class="hv"><span class="faint">…</span></div></div>{% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="stack">
+    <div class="card">
+      <div class="card-hd"><h3>{{ t.text("agents.column.usage") }}</h3></div>
+      {% set usage = activity.usage if activity else none %}
+      <div class="usage-big"><span class="val num">{{ (usage.input + usage.output) | tokens if usage else "—" }}</span><span class="sub">tokens{% if usage and usage.cost is not none %} · ${{ "%.2f" | format(usage.cost) }}{% endif %}</span></div>
+      <div class="kv">
+        <div class="kv-row"><span>{{ t.text("agents.usage.input") }}</span><span class="v num">{{ usage.input | tokens if usage else "—" }}</span></div>
+        <div class="kv-row"><span>{{ t.text("agents.usage.cached") }}</span><span class="v num">{% if usage %}{{ usage.cached | tokens }}{% if usage.input %} · {{ (usage.cached * 100 / usage.input) | round | int }}%{% endif %}{% else %}—{% endif %}</span></div>
+        <div class="kv-row"><span>{{ t.text("agents.usage.output") }}</span><span class="v num">{{ usage.output | tokens if usage else "—" }}</span></div>
+        <div class="kv-row"><span>{{ t.text("agents.usage.cost") }}</span><span class="v num">{{ "$%.2f" | format(usage.cost) if usage and usage.cost is not none else "—" }}</span></div>
+      </div>
+    </div>
+    <div class="card note-card">{% include "agents/icons/monitor.svg" %}<div>{{ t.text("agents.activity.note", {"computer": row.computer.name if row.computer else "—"}) }}</div></div>
+  </div>
+</div>

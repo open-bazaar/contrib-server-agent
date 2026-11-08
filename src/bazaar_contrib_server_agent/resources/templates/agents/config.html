@@ -1,0 +1,11 @@
+{# the agent as its computer holds it: the basics edited in place, each channel and runtime in a drawer drawn from its own schema; nothing reaches the computer until saved #}
+{% if drafted is none %}
+<div class="cols cfgcols">
+  <div class="card"><div class="card-hd"><h3>{{ t.text("agents.tab.config") }}</h3></div><p class="none">{% if row.online %}{{ t.text("agents.workspace.unanswered", {"computer": row.computer.name}) }}{% else %}{{ t.text("agents.config.away", {"computer": row.computer.name if row.computer else "—"}) }}{% endif %}</p></div>
+</div>
+{% else %}
+<div class="cols cfgcols">
+  {% include "agents/form.html" %}
+  {% include "agents/side.html" %}
+</div>
+{% endif %}

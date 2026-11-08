@@ -1,0 +1,45 @@
+{% extends "server/base.html" %}
+{% import "agents/macros.html" as m with context %}
+{% set agent = row.kept.agent %}
+{% set short = ref(agent.id) %}
+{% block title %}{{ agent.name }}{% endblock %}
+{% block back %}/ui/agents/{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('agents.css') }}"><script src="{{ asset('agents.js') }}"></script>{% endblock %}
+{% block heading %}<span id="crumbs" class="crumbs"><a href="/ui/agents/">{{ t.text("agents.title") }}</a>{% include "agents/icons/chevron-right.svg" %}<b>{{ agent.name }}</b></span>{% endblock %}
+{% block actions %}
+{% if share %}<button class="btn ghost" type="button" hx-get="/ui/agents/{{ short }}/share" hx-target="#drawer" hx-swap="innerHTML">{% include "agents/icons/share-2.svg" %}{{ t.text("agents.share.action") }}</button>{% endif %}
+{% if row.update %}<a class="btn" href="/ui/agents/{{ short }}?tab=config">{% include "agents/icons/pencil.svg" %}{{ t.text("agents.edit") }}</a>{% endif %}
+{% if row.delete %}<button class="icon-btn" type="button" hx-get="/ui/agents/{{ short }}/remove" hx-target="#drawer" hx-swap="innerHTML" aria-label="{{ t.text('agents.remove') }}">{% include "agents/icons/trash-2.svg" %}</button>{% endif %}
+{% endblock %}
+{% block body %}
+<section class="content detail" x-data @agents:removed.window="location.assign('/ui/agents/')">
+  {# a change draws the activity tab again whole, and only the header over the others: an open folder or a form being filled stays as it is #}
+  {% set live = ".detail" if tab == "activity" else ".profile" %}
+  <span hidden data-topic="agents.agent" data-scope='{{ {"agent": short | string} | tojson }}' data-seen='{{ seen | tojson }}' hx-get="/ui/agents/{{ short }}" hx-select="{{ live }}" hx-select-oob="#crumbs" hx-target="{{ live }}" hx-swap="outerHTML" hx-trigger="bazaar:change"></span>
+  <div class="profile">
+    {{ m.avatar(agent, "lg") }}
+    <div>
+      <h2>{{ agent.name }} {{ m.status(row) }}</h2>
+      <div class="facts">
+        {% for provider in agent.channel %}
+        {% set link = (row.activity.channels | selectattr("connection", "equalto", provider.connection) | first | default(none)) if row.activity else none %}
+        <span class="fact">{{ m.logo(provider.kind) }}<b>{{ (link.identity.name or link.identity.id) if link and link.identity else "—" }}</b></span>
+        {% endfor %}
+        {% if agent.harness %}
+        <span class="fact">{% for provider in agent.harness %}{% if not loop.first %}<span class="then">{% include "agents/icons/chevron-right.svg" %}</span>{% endif %}{{ m.logo(provider.kind) }}<b>{{ provider["values"].get("model") or t.text("agents.model.default") }}</b>{% if provider["values"].get("effort") %} · {{ provider["values"].get("effort") }}{% endif %}{% if not loop.first %} · {{ t.text("agents.standby") }}{% endif %}{% endfor %}</span>
+        {% endif %}
+        <span class="fact">{% include "agents/icons/monitor.svg" %}{{ t.text("agents.runs_on") }} <b>{{ row.computer.name if row.computer else "—" }}</b></span>
+        <span class="fact">{{ t.text("agents.mode." ~ agent.mode) }}</span>
+      </div>
+    </div>
+  </div>
+  <nav class="tabs">
+    {% for one in ("activity", "workspace", "skills", "config") if one != "config" or row.update %}
+    <a class="tab{% if one == tab %} on{% endif %}" href="/ui/agents/{{ short }}?tab={{ one }}">{{ t.text("agents.tab." ~ one) }}</a>
+    {% endfor %}
+    {% if share %}<button class="tab" type="button" hx-get="/ui/agents/{{ short }}/share" hx-target="#drawer" hx-swap="innerHTML">{{ t.text("agents.tab.share") }}</button>{% endif %}
+  </nav>
+  {% include "agents/" ~ tab ~ ".html" %}
+</section>
+<div id="drawer"></div>
+{% endblock %}

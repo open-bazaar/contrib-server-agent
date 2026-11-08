@@ -1,0 +1,9 @@
+{% extends "server/base.html" %}
+{% block title %}{{ t.text("agents.create") }}{% endblock %}
+{% block back %}/ui/agents/{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('agents.css') }}"><script src="{{ asset('agents.js') }}"></script>{% endblock %}
+{% block heading %}<span class="crumbs"><a href="/ui/agents/">{{ t.text("agents.title") }}</a>{% include "agents/icons/chevron-right.svg" %}<b>{{ t.text("agents.create") }}</b></span>{% endblock %}
+{% block actions %}<a class="btn ghost" href="/ui/agents/">{{ t.text("agents.cancel") }}</a>{% endblock %}
+{% block body %}
+<section class="content">{% include "agents/wizard.html" %}</section>
+{% endblock %}

@@ -1,0 +1,14 @@
+{# what is in the agent's workspace, read from its computer a directory at a time: a folder opens to the level under it, a file in the drawer #}
+<div class="card ws">
+  <div class="card-hd">
+    <h3>{{ t.text("agents.tab.workspace") }}</h3>
+    <span class="sub">{% if directory %}{{ t.text("agents.workspace.on", {"computer": row.computer.name}) }} <span class="mono">{{ directory.root }}</span> · {{ t.text("agents.workspace.hint") }}{% elif row.online %}{{ t.text("agents.workspace.unanswered", {"computer": row.computer.name}) }}{% else %}{{ t.text("agents.workspace.away", {"computer": row.computer.name if row.computer else "—"}) }}{% endif %}</span>
+    <button class="more" type="button" hx-get="/ui/agents/{{ short }}?tab=workspace" hx-select=".ws" hx-target=".ws" hx-swap="outerHTML" aria-label="{{ t.text('agents.workspace.reread') }}">{% include "agents/icons/refresh-cw.svg" %}</button>
+  </div>
+  {% if directory %}
+  <div class="tree">
+    <div class="fr h"><span>{{ t.text("agents.workspace.name") }}</span><span>{{ t.text("agents.workspace.size") }}</span><span>{{ t.text("agents.workspace.modified") }}</span></div>
+    {% with depth = 0, offset = 0 %}{% include "agents/entries.html" %}{% endwith %}
+  </div>
+  {% endif %}
+</div>

@@ -1,0 +1,76 @@
+[project]
+name = "bazaar-contrib-server-agent"
+version = "0.3.0rc1"
+description = "The agents of the Bazaar Compute server: the agents on its computers, their pages, and who may see and change them"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.15"
+dependencies = [
+    "bazaar-core~=0.3.0rc1",
+    "bazaar-contrib-audit~=0.3.0rc20",
+    "bazaar-contrib-schema~=0.3.0rc1",
+    "bazaar-contrib-sidecar~=0.3.0rc1",
+    "bazaar-contrib-storage~=0.3.0rc1",
+    "bazaar-contrib-server~=0.3.0rc3",
+    "bazaar-contrib-server-access~=0.3.0rc5",
+    "bazaar-contrib-server-computer~=0.3.0rc2",
+    "bazaar-contrib-server-database~=0.3.0rc1",
+    "bazaar-contrib-server-migrations~=0.3.0rc2",
+    "jinja2>=3.1.6",
+    "pydantic>=2.12.0",
+    "pygments>=2.20.0",
+    "python-multipart>=0.0.32",
+    "starlette>=0.48.0",
+]
+
+[project.entry-points."bazaar_compute_node.contribs"]
+server-agent = "bazaar_contrib_server_agent:agent"
+
+[project.urls]
+Repository = "https://github.com/open-bazaar/contrib-server-agent"
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:anyio"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.pyright]
+include = ["src", "tests", "scripts"]
+pythonVersion = "3.15"
+pythonPlatform = "All"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
+reportMatchNotExhaustive = "error"
+reportUnreachable = "warning"
+reportUnusedFunction = "warning"
+reportUnusedVariable = "warning"
+
+[tool.ruff.lint]
+extend-select = ["ASYNC"]
+
+[tool.uv.sources]
+workshop = { path = "tests/fixtures/workshop", editable = true }
+
+[dependency-groups]
+dev = [
+    "bazaar-compute[node]~=0.3.0rc21",
+    "bazaar-contrib-sqlite~=0.3.0rc1",
+    "bazaar-contrib-starlink~=0.3.0rc1",
+    "bazaar-contrib-timer-wheel~=0.3.0rc1",
+    "blockbuster>=1.5.29,<1.6",
+    "httpx>=0.28.0,<1",
+    "playwright>=1.55.0",
+    "pyright==1.1.414",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.9.0",
+    "tomli-w>=1.2.0",
+    "workshop",
+]

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+{# the sidebar's part: each agent at work, its lantern, name, conversation and how long; a strip turning through them on a narrow screen #}
+<html lang="{{ t.language }}" data-theme="{{ theme }}">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="{{ stylesheet }}">
+<link rel="stylesheet" href="{{ asset('agents.css') }}">
+<script src="{{ asset('embed.js', 'server') }}"></script>
+<script src="{{ asset('htmx.min.js', 'server') }}"></script>
+</head>
+<body class="working-part">
+  <span hidden data-topic="agents.working" data-seen='{{ seen | tojson }}' hx-get="/ui/agents/working" hx-trigger="bazaar:change" hx-target="body" hx-swap="outerHTML"></span>
+  {% if busy %}
+  <div class="busy-hd">{{ t.text("agents.working.title") }}<b>{{ busy | length }}</b></div>
+  <ul class="busy">
+    {% for kept, activity in busy %}
+    <li><a href="/agents/{{ ref(kept.agent.id) }}" target="_top"><span class="lantern work"></span><b>{{ kept.agent.name }}</b>{% if activity.working.conversation %}<small>{{ activity.working.conversation }}</small>{% endif %}<time>{{ activity.working.since_ms | lasted }}</time></a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</body>
+</html>

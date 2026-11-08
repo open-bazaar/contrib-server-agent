@@ -1,0 +1,145 @@
+{% import "agents/macros.html" as m with context %}
+{% import "agents/fields.html" as f with context %}
+{% set offered = {"channel": providers.channel if providers else [], "harness": providers.harness if providers else []} %}
+{% set label = {2: "channel", 3: "harness"}.get(step) %}
+{# making an agent in four steps beside a card of what it will be: the draft travels with every step and comes back drawn again, and nothing reaches the computer until it is made #}
+<div id="wizbox" class="wizard">
+  <nav class="stepper">
+    {% for n in range(1, 5) %}
+    <div class="st{% if n == step %} on{% elif n < step %} done{% endif %}">
+      <span class="n">{% if n < step %}{% include "agents/icons/check.svg" %}{% else %}{{ n }}{% endif %}</span>
+      <div><b>{{ t.text("agents.new.step" ~ n) }}</b><span>{% if n < step and n == 1 %}{{ drafted.name }} · {{ chosen.name if chosen else "—" }}{% elif n < step and n == 2 %}{% for item in drafted.channel %}{{ m.headline(none, "channel", item) }}{% if not loop.last %}，{% endif %}{% else %}—{% endfor %}{% elif n < step and n == 3 %}{% for item in drafted.harness %}{{ m.headline(none, "harness", item) }}{% if not loop.last %}，{% endif %}{% else %}—{% endfor %}{% else %}{{ t.text("agents.new.todo" ~ n) }}{% endif %}</span></div>
+    </div>
+    {% endfor %}
+  </nav>
+  <form id="wiz" class="card form" hx-post="/ui/agents/new" hx-target="#wizbox" hx-swap="outerHTML" x-data='{ mode: {{ drafted.mode | tojson }} }' @keydown.enter="$event.target.tagName === 'INPUT' && $event.preventDefault()">
+    <input type="hidden" name="draft" value='{{ drafted | tojson }}'>
+    <input type="hidden" name="step" value="{{ step }}">
+    <input type="hidden" name="opened" value='{{ opened | tojson }}'>
+    <input type="hidden" name="order" value="">
+    {% if step == 1 %}
+    <h2 class="q">{{ t.text("agents.new.q1") }}</h2>
+    <p class="q-sub">{{ t.text("agents.new.q1_sub") }}</p>
+    <div class="grid2">
+      <label class="field"><span class="lbl">{{ t.text("agents.config.name") }}</span><input class="input" name="name" value="{{ drafted.name }}" required autocomplete="off" autofocus></label>
+      <label class="field"><span class="lbl">{{ t.text("agents.config.idle") }}</span><span class="input suffixed"><input name="idle_timeout" type="number" min="0" step="1" value="{{ drafted.idle_timeout | int }}"><span class="suffix">{{ t.text("agents.config.idle_unit") }}</span></span></label>
+    </div>
+    <div class="field">
+      <span class="lbl">{{ t.text("agents.column.computer") }}</span>
+      <p class="lead">{{ t.text("agents.new.computers") }}</p>
+      <div class="pcs">
+        {% for computer in computers %}
+        <label class="pcp"><input type="radio" name="computer" value="{{ ref(computer.id) }}" required{% if computer.id == drafted.computer %} checked{% endif %}><span class="os">{% include "agents/icons/monitor.svg" %}</span><span class="pc"><b>{{ computer.name }}</b><span class="online">{{ t.text("agents.new.online") }}</span></span><span class="tick">{% include "agents/icons/check.svg" %}</span></label>
+        {% else %}
+        <p class="none">{{ t.text("agents.new.no_computer") }}</p>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field"><span class="lbl">{{ t.text("agents.config.mode") }}</span><div class="seg wide">{% for one in ("session", "dangerous_individual") %}<label><input type="radio" name="mode" value="{{ one }}" x-model="mode"><span>{{ t.text("agents.choice." ~ one) }}</span></label>{% endfor %}</div><span class="hint">{{ t.text("agents.new.mode_hint") }}</span></div>
+      {# a personal assistant runs outside the sandbox: its column stays, fixed at full access #}
+      <div class="field"><span class="lbl">{{ t.text("agents.config.sandbox") }}</span><div class="seg wide" x-show="mode == 'session'">{% for one in ("workspace-write", "danger-full-access") %}<label><input type="radio" name="sandbox" value="{{ one }}"{% if drafted.sandbox == one %} checked{% endif %}><span>{{ t.text("agents.sandbox." ~ one) }}</span></label>{% endfor %}</div><div class="seg wide fixed" x-show="mode != 'session'" x-cloak aria-disabled="true">{% for one in ("workspace-write", "danger-full-access") %}<span{% if one == "danger-full-access" %} class="on"{% endif %}>{{ t.text("agents.sandbox." ~ one) }}</span>{% endfor %}</div><span class="hint" x-show="mode == 'session'">{{ t.text("agents.new.sandbox_hint") }}</span><span class="hint" x-show="mode != 'session'" x-cloak>{{ t.text("agents.new.unsandboxed") }}</span></div>
+    </div>
+    {% elif label %}
+    <h2 class="q">{{ t.text("agents.new.q_" ~ label, {"name": drafted.name}) }}</h2>
+    <p class="q-sub">{{ t.text("agents.new.q_" ~ label ~ "_sub", {"computer": chosen.name if chosen else "—"}) }}</p>
+    {% if providers is none %}
+    <p class="none">{{ t.text("agents.workspace.unanswered", {"computer": chosen.name if chosen else "—"}) }}</p>
+    {% else %}
+    <div class="picks">
+      {% for one in offered[label] %}
+      {% set count = drafted[label] | selectattr("kind", "equalto", one.kind) | list | length %}
+      {% set seen = inspected.get(one.kind) %}
+      <button type="submit" class="pick{% if count %} on{% endif %}" name="action" value="add:{{ label }}:{{ one.kind }}">
+        {% if count %}<span class="tick">{% if count > 1 %}{{ count }}{% else %}{% include "agents/icons/check.svg" %}{% endif %}</span>{% endif %}
+        {{ m.logo(one.kind) }}<b>{{ one.kind }}</b>
+        {% if seen %}<span class="ver{% if not seen.inspection.available %} off{% endif %}">{% if seen.inspection.version %}{{ seen.inspection.version }} · {% endif %}{{ t.text("agents.runtime.available" if seen.inspection.available else "agents.runtime.unavailable") }}</span>{% endif %}
+      </button>
+      {% else %}
+      <p class="none">{{ t.text("agents.config.none_offered", {"computer": chosen.name if chosen else "—"}) }}</p>
+      {% endfor %}
+    </div>
+    <div class="plist"{% if label == "harness" %} x-data="reorder"{% endif %}>
+      {% for item in drafted[label] %}
+      {% set found = offered[label] | selectattr("kind", "equalto", item.kind) | first | default(none) %}
+      {% set schema = found.json_schema if found else {} %}
+      {% if opened == [label, loop.index0] %}
+      <div class="cfg" data-index="{{ loop.index0 }}">
+        <h4>{% if label == "harness" %}<span class="ord{% if loop.first %} on{% endif %}">{{ loop.index }}</span>{% endif %}{{ m.logo(item.kind) }}<span>{{ t.text("agents.new.settings") }}</span><button type="submit" class="ed" name="action" value="close">{{ t.text("agents.new.collapse") }}</button></h4>
+        {{ f.fields(schema, item, item["values"], {}, inspected[item.kind].inspection.models if item.kind in inspected else [], {"hx-post": "/ui/agents/new", "hx-trigger": "change", "hx-include": "closest form", "hx-vals": {"action": "refresh"} | tojson | forceescape, "hx-target": "#wizbox", "hx-swap": "outerHTML"}, chosen.name if chosen else "—") }}
+      </div>
+      {% else %}
+      <div class="prow" data-index="{{ loop.index0 }}">
+        {% if label == "harness" %}<span class="grip" @pointerdown="start($event)" aria-hidden="true">{% include "agents/icons/grip-vertical.svg" %}</span><span class="ord{% if loop.first %} on{% endif %}">{{ loop.index }}</span>{% endif %}
+        {{ m.logo(item.kind) }}<b{% if label == "harness" %} class="mono"{% endif %}>{{ m.headline(none, label, item) }}</b>
+        <span class="muted">{{ m.summary(schema, item) }}</span>
+        <button type="submit" class="ed" name="action" value="open:{{ label }}:{{ loop.index0 }}" aria-label="{{ t.text('agents.new.expand') }}">{% include "agents/icons/pencil.svg" %}</button>
+        <button type="submit" class="x" name="action" value="remove:{{ label }}:{{ loop.index0 }}" formnovalidate aria-label="{{ t.text('agents.remove') }}">{% include "agents/icons/trash-2.svg" %}</button>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% if label == "harness" %}<button type="submit" name="action" value="order:harness" hidden x-ref="moved"></button>{% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <h2 class="q">{{ t.text("agents.new.q4") }}</h2>
+    <p class="q-sub">{{ t.text("agents.new.q4_sub", {"computer": chosen.name if chosen else "—"}) }}</p>
+    <div class="sum">
+      <div class="blk">
+        <h5>{{ t.text("agents.config.basics") }}<button type="submit" class="edit" name="action" value="go:1" formnovalidate>{{ t.text("agents.new.change") }}</button></h5>
+        <div class="rows">
+          <span>{{ t.text("agents.config.name") }}</span><b>{{ drafted.name }}</b>
+          <span>{{ t.text("agents.column.computer") }}</span><b>{{ chosen.name if chosen else "—" }}</b>
+          <span>{{ t.text("agents.config.mode") }}</span><b>{{ t.text("agents.mode." ~ drafted.mode) }}</b>
+          {% if drafted.mode == "session" %}<span>{{ t.text("agents.config.sandbox") }}</span><b>{{ t.text("agents.sandbox." ~ drafted.sandbox) }}</b>{% endif %}
+          <span>{{ t.text("agents.config.idle") }}</span><b class="num">{{ t.text("agents.new.seconds", {"n": drafted.idle_timeout | int}) }}</b>
+        </div>
+      </div>
+      {% for one in ("channel", "harness") %}
+      <div class="blk">
+        <h5>{{ t.text("agents.config.title_" ~ one) }}<small>{{ t.text("agents.new.sum_" ~ one) }}</small><button type="submit" class="edit" name="action" value="go:{{ 2 if one == 'channel' else 3 }}" formnovalidate>{{ t.text("agents.new.change") }}</button></h5>
+        <div class="lines">
+          {% for item in drafted[one] %}
+          {% set found = offered[one] | selectattr("kind", "equalto", item.kind) | first | default(none) %}
+          <div class="ln">{% if one == "harness" %}<span class="ord{% if loop.first %} on{% endif %}">{{ loop.index }}</span>{% endif %}{{ m.logo(item.kind) }}<b class="mono">{{ m.headline(none, one, item) }}</b><span>{{ m.summary(found.json_schema if found else {}, item) }}</span>{% if one == "harness" %}<em>{{ t.text("agents.runtime.in_use" if loop.first else "agents.standby") }}</em>{% endif %}</div>
+          {% else %}
+          <p class="none">{{ t.text("agents.config.empty_" ~ one) }}</p>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if failed is not none %}<p class="errv">{{ t.text("agents.new.failed", {"computer": chosen.name if chosen else "—", "error": failed or t.text("agents.remove.unanswered")}) }}</p>{% endif %}
+    {% endif %}
+    <div class="foot">
+      {% if step > 1 %}<button type="submit" class="btn ghost" name="action" value="go:{{ step - 1 }}" formnovalidate>{{ t.text("agents.new.back") }}</button>{% endif %}
+      <div class="right">
+        {% if step < 4 %}<button type="submit" class="btn primary" name="action" value="go:{{ step + 1 }}"{% if step == 1 and not computers %} disabled{% endif %}>{{ t.text("agents.new.next" ~ (step + 1)) }}</button>
+        {% else %}<button type="submit" class="btn primary" name="action" value="create">{{ t.text("agents.new.create", {"name": drafted.name}) }}</button>{% endif %}
+      </div>
+    </div>
+  </form>
+  <aside class="preview">
+    <div class="card namecard">
+      <div class="who">
+        {{ m.avatar({"name": drafted.name or "?"}, "lg") }}
+        <h3>{{ drafted.name or t.text("agents.new.unnamed") }}</h3>
+        <span class="status off"><span class="lantern off"></span>{{ t.text("agents.new.not_yet") }}</span>
+      </div>
+      <div class="kv">
+        <div class="kv-row"><span>{{ t.text("agents.column.computer") }}</span><span class="v">{{ chosen.name if chosen else "—" }}</span></div>
+        <div class="kv-row"><span>{{ t.text("agents.config.mode") }}</span><span class="v">{{ t.text("agents.mode." ~ drafted.mode) }}</span></div>
+        <div class="kv-row"><span>{{ t.text("agents.config.idle") }}</span><span class="v num">{{ t.text("agents.new.seconds", {"n": drafted.idle_timeout | int}) }}</span></div>
+        <div class="kv-row"><span>{{ t.text("agents.column.channel") }}</span><span class="v logos">{% for item in drafted.channel %}{{ m.logo(item.kind) }}{% else %}—{% endfor %}</span></div>
+        <div class="kv-row"><span>{{ t.text("agents.column.runtime") }}</span><span class="v logos">{% for item in drafted.harness %}{{ m.logo(item.kind) }}{% else %}—{% endfor %}</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>{{ t.text("agents.new.after") }}</h3></div>
+      <div class="after">
+        <div>{% include "agents/icons/check.svg" %}<span>{{ t.text("agents.new.after_start", {"computer": chosen.name if chosen else "—", "name": drafted.name or t.text("agents.new.unnamed")}) }}</span></div>
+        <div>{% include "agents/icons/settings.svg" %}<span>{{ t.text("agents.new.after_change") }}</span></div>
+      </div>
+    </div>
+  </aside>
+</div>

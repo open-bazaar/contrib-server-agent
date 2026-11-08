@@ -1,0 +1,17 @@
+{# the question before an agent is deleted: what stops, what goes and what stays; a computer away cannot be asked #}
+{% set agent = row.kept.agent %}
+{% set computer = row.computer.name if row.computer else "—" %}
+<div class="overlay" x-data @keydown.escape.window="$el.remove()" @agents:removed.window="$el.remove()">
+  <div class="backdrop" @click="$el.parentElement.remove()"></div>
+  <div class="confirm" role="alertdialog" aria-labelledby="remove-title">
+    <span class="ic">{% include "agents/icons/trash-2.svg" %}</span>
+    <h3 id="remove-title">{{ t.text("agents.remove.title", {"name": agent.name}) }}</h3>
+    <p>{{ t.text("agents.remove.hint", {"name": agent.name, "computer": computer}) }}</p>
+    {% if not row.online %}<p class="errv">{{ t.text("agents.remove.away", {"computer": computer}) }}</p>
+    {% elif failed is not none %}<p class="errv">{{ t.text("agents.remove.failed", {"computer": computer, "error": failed or t.text("agents.remove.unanswered")}) }}</p>{% endif %}
+    <form hx-post="/ui/agents/{{ ref(agent.id) }}/remove" hx-target="closest .overlay" hx-swap="outerHTML">
+      <button class="btn" type="button" @click="$el.closest('.overlay').remove()">{{ t.text("agents.cancel") }}</button>
+      <button class="btn red" type="submit"{% if not row.online %} disabled{% endif %}>{% include "agents/icons/trash-2.svg" %}{{ t.text("agents.remove") }}</button>
+    </form>
+  </div>
+</div>

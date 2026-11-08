@@ -1,0 +1,19 @@
+{% import "agents/macros.html" as m with context %}
+{% import "agents/fields.html" as f with context %}
+{% set short = ref(row.kept.agent.id) %}
+{# a channel or runtime in the drawer; done, it goes back into the draft, and nothing reaches the computer until the draft is saved #}
+<div class="overlay" x-data @keydown.escape.window="$el.remove()">
+  <div class="backdrop" @click="$el.parentElement.remove()"></div>
+  <aside class="drawer edit" role="dialog" aria-labelledby="item-title">
+    <form class="item" hx-post="/ui/agents/{{ short }}/config" hx-include="#cfg" hx-target="#cfgbox" hx-swap="outerHTML">
+      <input type="hidden" name="action" value="item:{{ label }}:{{ place }}">
+      <input type="hidden" name="kind" value="{{ item.kind }}">
+      <div class="d-hd">{{ m.logo(item.kind) }}<h3 id="item-title">{% if place == "new" %}{{ t.text("agents.config.new_" ~ label) }}{% else %}{{ m.headline(row, label, item) }}{% endif %}</h3><button class="icon-btn close" type="button" @click="$el.closest('.overlay').remove()" aria-label="{{ t.text('agents.close') }}">{% include "agents/icons/x.svg" %}</button></div>
+      <div class="d-bd">
+        <p class="hint">{{ t.text("agents.config.fields_from", {"computer": row.computer.name}) }}</p>
+        {{ f.fields(schema, item, values, typed, models, {"hx-post": "/ui/agents/" ~ short ~ "/item", "hx-trigger": "change", "hx-include": "closest form, #cfg", "hx-vals": {"label": label, "place": place, "kind": item.kind, "redraw": 1} | tojson | forceescape, "hx-target": "closest .overlay", "hx-swap": "outerHTML"}, row.computer.name) }}
+      </div>
+      <div class="d-ft"><button class="btn" type="button" @click="$el.closest('.overlay').remove()">{{ t.text("agents.cancel") }}</button><button class="btn primary" type="submit">{{ t.text("agents.config.done") }}</button></div>
+    </form>
+  </aside>
+</div>

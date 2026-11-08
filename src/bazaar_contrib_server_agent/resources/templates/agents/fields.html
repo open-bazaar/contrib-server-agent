@@ -1,0 +1,44 @@
+{# a plugin's fields as its schema on the computer gives them: credentials typed blind and kept when left blank, models and efforts from what the runtime reports, choices in the plugin's own words; changing the model redraws the form through `refresh`, its efforts following #}
+{% macro fields(schema, item, values, typed, models, refresh, computer) %}
+{% set props = schema.get("properties") or {} %}
+{% set required = schema.get("required") or [] %}
+{% set ns = namespace(model=none, secrets=false) %}
+{% for name, field in props.items() %}{% if field.get("x-inspect") == "models" %}{% set ns.model = name %}{% endif %}{% if field.get("writeOnly") %}{% set ns.secrets = true %}{% endif %}{% endfor %}
+{% set model = ((models | selectattr("id", "equalto", values.get(ns.model)) | first | default(none)) or (models | selectattr("default") | first | default(none))) if ns.model else none %}
+{% for name, field in props.items() %}
+{% set types = [field.get("type")] + ((field.get("anyOf") or []) | map(attribute="type") | list) %}
+{% set choices = field.get("enum") or ((field.get("anyOf") or []) | selectattr("enum", "defined") | map(attribute="enum") | first | default(none)) %}
+{% set value = values.get(name) %}
+<div class="field">
+  <label class="lbl" for="f-{{ name }}">{{ schema | word(name ~ ".title", name) }}</label>
+  {% if field.get("writeOnly") %}
+  {% set state = "typed" if name in typed or name in item.new else "saved" if name in item.secrets else "none" %}
+  <span class="input secret">{% include "agents/icons/key-round.svg" %}<input id="f-{{ name }}" class="mono" type="password" name="s.{{ name }}" value="{{ typed.get(name, '') }}" autocomplete="new-password" placeholder="{{ t.text('agents.secret.placeholder_' ~ state) if state != 'none' else schema | word(name ~ '.empty') }}"></span>
+  <span class="hint">{% if state == "saved" %}{{ t.text("agents.secret.keep") }}{% else %}{{ schema | word(name ~ ".description") }}{% endif %}</span>
+  {% elif field.get("x-inspect") == "models" %}
+  <span class="input select"><select id="f-{{ name }}" name="f.{{ name }}"{{ refresh | xmlattr }}>
+    <option value="">{{ schema | word(name ~ ".empty", t.text("agents.model.default")) }}</option>
+    {% for one in models %}<option value="{{ one.id }}"{% if value == one.id %} selected{% endif %}>{{ one.name }}</option>{% endfor %}
+    {% if value and value not in models | map(attribute="id") | list %}<option value="{{ value }}" selected>{{ value }}</option>{% endif %}
+  </select><span class="i">{% include "agents/icons/chevron-down.svg" %}</span></span>
+  {% if schema | word(name ~ ".description") %}<span class="hint">{{ schema | word(name ~ ".description") }}</span>{% endif %}
+  {% elif field.get("x-inspect") == "efforts" %}
+  <span class="input select"><select id="f-{{ name }}" name="f.{{ name }}">
+    <option value="">{{ schema | word(name ~ ".empty", t.text("agents.effort.default")) }}</option>
+    {% for effort in (model.efforts if model else []) %}<option value="{{ effort }}"{% if value == effort %} selected{% endif %}>{{ schema | word(name ~ "." ~ effort, effort) }}</option>{% endfor %}
+    {% if value and (not model or value not in model.efforts) %}<option value="{{ value }}" selected>{{ schema | word(name ~ "." ~ value, value) }}</option>{% endif %}
+  </select><span class="i">{% include "agents/icons/chevron-down.svg" %}</span></span>
+  {% if schema | word(name ~ ".description") %}<span class="hint">{{ schema | word(name ~ ".description") }}</span>{% endif %}
+  {% elif choices %}
+  <div class="seg wide">{% for one in choices %}<label><input type="radio" name="f.{{ name }}" value="{{ one }}"{% if (value if value is not none else field.get("default")) == one %} checked{% endif %}><span>{{ schema | word(name ~ "." ~ one, one) }}</span></label>{% endfor %}</div>
+  {% if schema | word(name ~ ".description") %}<span class="hint">{{ schema | word(name ~ ".description") }}</span>{% endif %}
+  {% elif "boolean" in types %}
+  <label class="check"><input id="f-{{ name }}" type="checkbox" name="f.{{ name }}"{% if (value if value is not none else field.get("default")) %} checked{% endif %}><span>{{ schema | word(name ~ ".description", name) }}</span></label>
+  {% else %}
+  <input id="f-{{ name }}" class="input" name="f.{{ name }}" type="{{ 'number' if 'integer' in types or 'number' in types else 'text' }}"{% if 'integer' in types %} step="1"{% endif %} value="{{ value if value is not none else '' }}" placeholder="{{ schema | word(name ~ '.empty', field.get('default') | string if field.get('default') is not none else '') }}" autocomplete="off"{% if name in required %} required{% endif %}>
+  {% if schema | word(name ~ ".description") %}<span class="hint">{{ schema | word(name ~ ".description") }}</span>{% endif %}
+  {% endif %}
+</div>
+{% endfor %}
+{% if ns.secrets %}<div class="secret-note">{% include "agents/icons/key-round.svg" %}<div>{{ t.text("agents.config.secret_note", {"computer": computer}) }}</div></div>{% endif %}
+{% endmacro %}
