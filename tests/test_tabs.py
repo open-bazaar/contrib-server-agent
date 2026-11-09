@@ -3,6 +3,7 @@ real browser, wide and on a phone, against a real node."""
 
 from __future__ import annotations
 
+lazy import asyncio
 lazy import re
 lazy from pathlib import Path
 
@@ -92,6 +93,20 @@ async def test_tabs_and_sections_another_module_registers_come_and_go(tmp_path: 
                     main = await agent.locator(".sections .main").bounding_box()
                     side = await agent.locator(".sections .side").bounding_box()
                     assert main and side and main["x"] + main["width"] <= side["x"]
+                    # a section showing nothing takes no room: the one after it
+                    # starts its column, level with the other column's first
+                    async with asyncio.timeout(10):
+                        while True:
+                            turns = await agent.locator(
+                                "iframe[title=turns]"
+                            ).bounding_box()
+                            status = await agent.locator(
+                                "iframe[title=status]"
+                            ).bounding_box()
+                            assert turns and status
+                            if turns["y"] == status["y"]:
+                                break
+                            await asyncio.sleep(0.2)
                     # a tab under another lights it while open
                     agent = await opened(page, f"{address}?tab=log")
                     await expect(agent.locator(".tabs .tab.on")).to_have_text("动态")
