@@ -1,5 +1,6 @@
 """The agents of the Bazaar Compute server: every agent on its computers,
-their pages, and who may see and change them."""
+their pages, who may see and change them, and AGENTS for the modules that
+put tabs and activity sections on an agent's page or read the agents."""
 
 from __future__ import annotations
 
@@ -27,12 +28,24 @@ from bazaar_contrib_server_computer import (
 from bazaar_contrib_server_database import SERVER_DB, SERVER_SCHEMA
 from bazaar_core import Context, Contrib, ServiceKey
 
+from .contracts import AGENTS, Agent, Agents, AgentSection, AgentTab
+from .models import Activity, AgentView
 lazy from .fleet import Fleet
 lazy from .pages import CREATE, DELETE, UPDATE, VIEW, Views
 lazy from .schema import MODULE
+lazy from .service import Service
 lazy from .store import Store
 
-__all__ = ["agent"]
+__all__ = [
+    "AGENTS",
+    "Activity",
+    "Agent",
+    "AgentSection",
+    "AgentTab",
+    "AgentView",
+    "Agents",
+    "agent",
+]
 
 # the computers' agents, for what the computers report and remove
 _FLEET = ServiceKey["Fleet"]("server.agents.fleet")
@@ -54,8 +67,9 @@ async def _agent(ctx: Context) -> AsyncIterator[None]:
     ):
         store = Store(ctx.accept(SERVER_DB), access)
         fleet = Fleet(computers, store, tasks)
+        service = Service(access, computers, store, fleet)
         pages = await server.pages("agents", __name__)
-        views = Views(server, pages, access, computers, store, fleet)
+        views = Views(server, pages, access, computers, store, fleet, service)
         async with (
             server.module(
                 "agents",
@@ -122,8 +136,20 @@ async def _agent(ctx: Context) -> AsyncIterator[None]:
             ),
             # who may create agents on a computer is shared with it, as 0.2 did
             access.points("computer", (CREATE,)),
+            # how each channel is connected, beside the activity on a wide screen
+            service.section(
+                AgentSection(
+                    key="status",
+                    src="/ui/agents/status",
+                    column="side",
+                    permission=VIEW,
+                    order=10,
+                    narrow=False,
+                )
+            ),
         ):
             ctx.offer(_FLEET, fleet)
+            ctx.offer(AGENTS, service)
             try:
                 yield
             finally:
@@ -140,7 +166,7 @@ async def _removed(ctx: Context, value: ComputerRemoved) -> None:
 
 agent = Contrib(
     accepts=[SERVER, ACCESS, COMPUTERS, SERVER_DB, SERVER_SCHEMA],
-    offers=[_FLEET],
+    offers=[_FLEET, AGENTS],
     lifespan=_agent,
     listen={REPORTED: _reported, COMPUTER_REMOVED: _removed},
 )

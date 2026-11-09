@@ -1,9 +1,10 @@
 """What each computer's node says about its agents: the list from
 agent-configuration, kept in the store, and their state from
-agent-activity; asked while a page shows the computer once what was said
-is a minute old, the state again as soon as the computer reports a turn or
-a connection, once more when it reports one while an answer is on its way,
-and what a runtime reports kept a minute for each agent and kind."""
+agent-activity; asked while a page shows the computer or a module reads
+the agents, once what was said is a minute old, the state again as soon
+as the computer reports a turn or a connection, once more when it
+reports one while an answer is on its way, and what a runtime reports
+kept a minute for each agent and kind."""
 
 from __future__ import annotations
 
@@ -13,7 +14,7 @@ lazy import logging
 lazy from time import time_ns
 
 from pydantic import TypeAdapter, ValidationError
-lazy from bazaar_contrib_server_computer import Computers
+lazy from bazaar_contrib_server_computer import Computers, ComputerSummary
 lazy from bazaar_contrib_sidecar import RemoteError
 
 from .models import Activity, Inspection, Listing, Providers
@@ -62,6 +63,15 @@ class Fleet:
         self._asking: dict[tuple[str, str], asyncio.Task[None]] = {}
         # computers that reported a change while their state was being asked
         self._again: set[str] = set()
+
+    async def looked(self) -> list[ComputerSummary]:
+        """Every computer, those online asked again about what their agents
+        are once that is a minute old: a computer just connected has none
+        kept yet."""
+        everyone = list(await self._computers.computers(None))
+        for computer in everyone:
+            self.look(computer.id, computer.online)
+        return everyone
 
     def look(self, computer_id: str, online: bool) -> None:
         """A page shows the computer's agents: one online is asked again
