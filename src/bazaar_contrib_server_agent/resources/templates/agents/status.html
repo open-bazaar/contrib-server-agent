@@ -1,0 +1,35 @@
+{% extends "server/base.html" %}
+{% import "agents/macros.html" as m with context %}
+{% set agent = row.kept.agent %}
+{% set short = ref(agent.id) %}
+{% block title %}{{ t.text("agents.status.title") }}{% endblock %}
+{% block top %}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('agents.css') }}">{% endblock %}
+{% block body %}
+{# a group a channel, in the order the agent has them: how it is connected, its bot, since when, its last message and its latest error, as the computer last said; what it said last while it is away #}
+<div class="card" id="status" data-topic="agents.agent" data-scope='{{ {"agent": short | string} | tojson }}' data-seen='{{ seen | tojson }}' hx-get="/ui/agents/status/{{ short }}" hx-select="#status" hx-target="#status" hx-swap="outerHTML" hx-trigger="bazaar:change">
+  <div class="card-hd"><h3>{{ t.text("agents.status.title") }}</h3><button class="more" type="button" hx-get="/ui/agents/status/{{ short }}" hx-select="#status" hx-target="#status" hx-swap="outerHTML">{% include "agents/icons/refresh-cw.svg" %}{{ t.text("agents.refresh") }}</button></div>
+  <div class="chans">
+    {% for provider in agent.channel %}
+    {% set link = (row.activity.channels | selectattr("connection", "equalto", provider.connection) | first | default(none)) if row.activity else none %}
+    <div class="chan">
+      <div class="chan-hd">{{ m.logo(provider.kind) }}<b>{{ (link.identity.name or link.identity.id) if link and link.identity else provider.kind }}</b>
+        {%- if not row.online %}<span class="state">{{ t.text("agents.state.offline") }}</span>
+        {%- elif not link %}<span class="state">—</span>
+        {%- elif link.state == "running" %}<span class="state ok">{% include "agents/icons/circle-check.svg" %}{{ t.text("agents.link.running") }}</span>
+        {%- elif link.state == "reconnecting" %}<span class="state retry">{% include "agents/icons/triangle-alert.svg" %}{{ t.text("agents.link.reconnecting", {"n": link.failures}) }}</span>
+        {%- elif link.state in ("disconnected", "failed", "blocked") %}<span class="state cut">{% include "agents/icons/triangle-alert.svg" %}{{ t.text("agents.link.disconnected") }}</span>
+        {%- elif link.state == "starting" %}<span class="state">{{ t.text("agents.link.starting") }}</span>
+        {%- else %}<span class="state">{{ t.text("agents.link.stopped") }}</span>{% endif %}</div>
+      {% if link and (link.connected_at_ms or link.received_at_ms) %}<div class="chan-dt">
+        {%- if link.connected_at_ms %}{{ t.text("agents.status.connected", {"when": link.connected_at_ms | moment}) }}{% endif %}
+        {%- if link.connected_at_ms and link.received_at_ms %} · {% endif %}
+        {%- if link.received_at_ms %}{{ t.text("agents.status.received", {"ago": link.received_at_ms | ago}) }}{% endif %}</div>{% endif %}
+      {% if link and link.error %}<div class="chan-dt err">{{ t.text("agents.status.error", {"error": link.error}) }}</div>{% endif %}
+    </div>
+    {% else %}
+    <p class="none">{{ t.text("agents.status.none") }}</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

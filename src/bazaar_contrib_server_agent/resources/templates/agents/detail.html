@@ -13,9 +13,8 @@
 {% endblock %}
 {% block body %}
 <section class="content detail" x-data @agents:removed.window="location.assign('/ui/agents/')">
-  {# a change draws the activity tab again whole, and only the header over the others: an open folder or a form being filled stays as it is #}
-  {% set live = ".detail" if tab == "activity" else ".profile" %}
-  <span hidden data-topic="agents.agent" data-scope='{{ {"agent": short | string} | tojson }}' data-seen='{{ seen | tojson }}' hx-get="/ui/agents/{{ short }}" hx-select="{{ live }}" hx-select-oob="#crumbs" hx-target="{{ live }}" hx-swap="outerHTML" hx-trigger="bazaar:change"></span>
+  {# a change draws the header again, and no more: an open folder or a form being filled stays as it is, and each section of the activity follows what it shows itself #}
+  <span hidden data-topic="agents.agent" data-scope='{{ {"agent": short | string} | tojson }}' data-seen='{{ seen | tojson }}' hx-get="/ui/agents/{{ short }}" hx-select=".profile" hx-select-oob="#crumbs" hx-target=".profile" hx-swap="outerHTML" hx-trigger="bazaar:change"></span>
   <div class="profile">
     {{ m.avatar(agent, "lg") }}
     <div>
@@ -33,13 +32,20 @@
       </div>
     </div>
   </div>
+  {# its own tabs, and those other modules put there, in their order; a count is the agent's as the update bus says it #}
+  {% set icons = {"activity": "activity", "workspace": "folder", "skills": "book-open", "config": "settings"} %}
   <nav class="tabs">
-    {% for one in ("activity", "workspace", "skills", "config") if one != "config" or row.update %}
-    <a class="tab{% if one == tab %} on{% endif %}" href="/ui/agents/{{ short }}?tab={{ one }}">{{ t.text("agents.tab." ~ one) }}</a>
+    {% for one in bar %}
+    {% if one is string %}
+    <a class="tab{% if one == lit %} on{% endif %}" href="/ui/agents/{{ short }}?tab={{ one }}">{% include "agents/icons/" ~ icons[one] ~ ".svg" %}{{ t.text("agents.tab." ~ one) }}</a>
+    {% else %}
+    <a class="tab{% if one.key == lit %} on{% endif %}" href="/ui/agents/{{ short }}?tab={{ one.key }}">{{ one.icon | safe }}{{ t.text(one.text) }}{% if one.count %}<span data-topic="{{ one.count }}" data-scope='{{ {"agent": short | string} | tojson }}' data-tally hidden></span>{% endif %}</a>
+    {% endif %}
     {% endfor %}
-    {% if share %}<button class="tab" type="button" hx-get="/ui/agents/{{ short }}/share" hx-target="#drawer" hx-swap="innerHTML">{{ t.text("agents.tab.share") }}</button>{% endif %}
+    {% if share %}<button class="tab" type="button" hx-get="/ui/agents/{{ short }}/share" hx-target="#drawer" hx-swap="innerHTML">{% include "agents/icons/share-2.svg" %}{{ t.text("agents.tab.share") }}</button>{% endif %}
   </nav>
-  {% include "agents/" ~ tab ~ ".html" %}
+  {% if opened %}<iframe class="pane" src="{{ opened.src }}/{{ short }}" data-fit title="{{ t.text(opened.text) }}"></iframe>
+  {% else %}{% include "agents/" ~ tab ~ ".html" %}{% endif %}
 </section>
 <div id="drawer"></div>
 {% endblock %}

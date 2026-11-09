@@ -8,3 +8,5 @@ package = "bazaar-contrib-server-agent~=0.3.0rc1"
 [[contribs.enabled]]
 entry = "server-agent"
 ```
+
+A contrib puts tabs and activity sections on an agent's page, and reads the agents an account may see, by accepting `AGENTS`.

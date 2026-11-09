@@ -286,6 +286,27 @@ class Store:
         )
         return [_kept(row) for row in rows[:PAGE]], len(rows) > PAGE
 
+    async def every(self, visible: frozenset[str] | None) -> list[Kept]:
+        """The agents the account may see, in the order of their computer and
+        their id."""
+        if visible is not None and not visible:
+            return []
+        rows = await self._database.read(
+            lambda session: session.select(
+                Select(
+                    table="agents",
+                    where=None
+                    if visible is None
+                    else In(expression=Column(name="agent_id"), values=tuple(visible)),
+                    order_by=(
+                        Sort(expression=Column(name="computer_id")),
+                        Sort(expression=Column(name="agent_id")),
+                    ),
+                )
+            )
+        )
+        return [_kept(row) for row in rows]
+
     async def count(self, visible: frozenset[str] | None) -> int:
         if visible is not None and not visible:
             return 0

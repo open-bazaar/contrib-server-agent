@@ -1,5 +1,6 @@
 /* The agents: the list as a table, a phone's list of cards, the drawers and
-   sheets over it, and the sidebar's part of those at work. */
+   sheets over it, an agent's tabs and the sections of its activity, and the
+   sidebar's part of those at work. */
 
 [x-cloak] { display: none !important; }
 /* a label centred in its box has a line-height whose leading is an even
@@ -118,39 +119,42 @@
 .fact .then { display: inline-grid; place-items: center; color: var(--faint); margin: 0 2px; }
 .fact .then svg { width: 11px; height: 11px; }
 .detail .tabs { margin: 16px -28px 0; }
-.detail .tabs a, .detail .tabs button { text-decoration: none; border: 0; background: none; font: inherit; cursor: pointer; }
+.detail .tabs a, .detail .tabs button { flex: none; text-decoration: none; border: 0; background: none; font: inherit; line-height: 20px; white-space: nowrap; cursor: pointer; }
+.detail .tabs svg { width: 16px; height: 16px; flex: none; }
+/* glyphs that sit a pixel low beside the rest */
+.detail .tabs a[href$="tab=activity"] svg, .detail .tabs button svg { position: relative; top: -1px; }
+.detail .tabs .tally { font-size: 11.5px; line-height: 18px; color: var(--faint); font-weight: 600; }
+/* a tab another module put there, its page in a frame as tall as it is */
+.detail > iframe.pane { display: block; width: 100%; margin-top: 18px; border: 0; }
 .cols { display: grid; grid-template-columns: 1fr 340px; gap: 20px; margin-top: 18px; align-items: start; }
 .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.card-hd .more { margin-left: auto; display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer; }
-.card-hd .more:hover { background: var(--surface-2); color: var(--text); }
-.card-hd .more svg { width: 14px; height: 14px; }
-.health { padding: 0 16px 6px; }
-.hrow { display: grid; grid-template-columns: 200px 1fr; gap: 16px; padding: 14px 0; }
-.hrow + .hrow { border-top: 1px solid var(--line-soft); }
-.hk { display: flex; align-items: center; gap: 9px; min-width: 0; font-size: 13.5px; line-height: 20px; font-weight: 600; }
-.hk .mono { line-height: 17px; }
-.hv b { font-size: 13.5px; line-height: 20px; }
-.hv > span { display: block; margin-top: 4px; font-size: 12.5px; color: var(--muted); }
-.okt { display: inline-flex; align-items: center; gap: 6px; color: var(--jade); font-weight: 600; }
-.okt svg { width: 13px; height: 13px; }
-.badt { color: var(--saffron); font-weight: 600; }
-.stbt { color: var(--muted); font-weight: 600; }
+/* the activity: the sections in their columns, each in a frame as tall as it is */
+.sections { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; margin-top: 18px; align-items: start; }
+.sections .column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sections iframe { display: block; width: 100%; border: 0; }
+/* a section of its own: how each channel is connected */
+.card-hd .more { padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }
+.card-hd .more:hover { color: var(--text); }
+.card-hd .more svg { width: 14px; height: 14px; position: relative; top: -1px; }
+.chans { padding: 0 16px 12px; }
+.chan + .chan { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.chan-hd { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 0; font-size: 13px; line-height: 20px; }
+.chan-hd b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.chan-hd .state { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--muted); }
+.chan-hd .state svg { width: 14px; height: 14px; }
+.chan-hd .state.ok { color: var(--jade); }
+.chan-hd .state.retry { font-size: 12.5px; color: var(--saffron); }
+.chan-hd .state.cut { font-size: 12.5px; color: var(--crimson); }
+.chan-dt { padding-left: 24px; font-size: 12.5px; line-height: 19px; color: var(--muted); overflow-wrap: anywhere; }
+.chan-dt.err { color: var(--crimson); }
 .errv { color: var(--crimson); }
-.hgrid { display: grid; grid-template-columns: 76px 1fr 76px 1fr; gap: 8px 12px; margin-top: 10px; font-size: 13px; }
-.hgrid span { color: var(--muted); }
-.hgrid b { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ord { width: 18px; height: 18px; flex: none; border-radius: 6px; display: inline-grid; place-items: center; font: 700 11px var(--font-mono); color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); }
 .ord.on { color: var(--saffron-ink); background: var(--saffron); border-color: var(--saffron); }
-.usage-big { padding: 0 16px 10px; display: flex; align-items: baseline; gap: 10px; }
-.usage-big .val { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter-spacing: -.02em; }
-.usage-big .sub { color: var(--muted); font-size: 13px; }
 .kv { padding: 2px 16px 12px; }
 .kv-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; font-size: 13px; line-height: 20px; }
 .kv-row + .kv-row { border-top: 1px solid var(--line-soft); }
 .kv-row > span:first-child { color: var(--muted); }
 .kv-row .v { font-weight: 600; }
-.note-card { display: flex; gap: 10px; padding: 14px 16px; font-size: 12.5px; line-height: 1.6; color: var(--text-2); }
-.note-card > svg { width: 14px; height: 14px; color: var(--muted); flex: none; margin-top: 3px; }
 /* the workspace: a directory a row, opened a level at a time */
 .ws { margin-top: 18px; }
 .ws .card-hd .sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -385,7 +389,13 @@ input.input:focus-visible, .input:has(input:focus-visible) { outline: none; bord
 .code .tok-gd, .code .tok-err { color: var(--crimson); }
 
 :root[data-layout="narrow"] .cols { grid-template-columns: 1fr; }
-:root[data-layout="narrow"] .hrow { grid-template-columns: 1fr; gap: 8px; }
+:root[data-layout="narrow"] .sections { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+:root[data-layout="narrow"] .sections .wide { display: none; }
+/* a phone's tabs: a strip of names that scrolls sideways, a count read as the name is */
+:root[data-layout="narrow"] .detail .tabs svg { display: none; }
+:root[data-layout="narrow"] .detail .tabs .tab { padding: 10px 10px 9px; }
+:root[data-layout="narrow"] .detail .tabs .tab.on::after { left: 8px; right: 8px; }
+:root[data-layout="narrow"] .detail .tabs .tally { font: inherit; color: inherit; }
 :root[data-layout="narrow"] .profile h2 { font-size: 22px; flex-wrap: wrap; }
 :root[data-layout="narrow"] .detail .tabs { margin: 16px -16px 0; padding: 0 12px; overflow-x: auto; }
 :root[data-layout="narrow"] .fr { grid-template-columns: 1fr 76px; }

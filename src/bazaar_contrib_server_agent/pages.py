@@ -1,5 +1,7 @@
-"""The agent pages: the list with its filters, and the parts the sidebar
-shows; what an account may do with each agent decided once a page."""
+"""The agent pages: the list with its filters, an agent's page with its own
+tabs and those other modules put on it, how its channels are connected,
+and the parts the sidebar shows; what an account may do with each agent
+decided once a page."""
 
 from __future__ import annotations
 
@@ -32,6 +34,7 @@ lazy from starlette.routing import Route
 
 lazy from .fleet import Fleet, Inspected
 lazy from .models import Activity, AgentView, Directory, File, Providers, Session
+lazy from .service import Service
 lazy from .store import PAGE, Kept, Store
 
 VIEW = "agents.view"
@@ -41,8 +44,8 @@ DELETE = "agents.delete"
 
 # how the list narrows by state
 STATES = ("all", "working", "failed", "offline")
-# an agent's page, a tab at a time
-TABS = ("activity", "workspace", "skills", "config")
+# an agent's own tabs, and where among those other modules put there each falls
+TABS = {"activity": 10, "workspace": 30, "skills": 40, "config": 50}
 
 
 def size(count: int) -> str:
@@ -197,14 +200,6 @@ def lasted(since_ms: int) -> str:
     return f"{minutes // 60}:{minutes % 60:02}"
 
 
-def tokens(count: int) -> str:
-    if count >= 1_000_000:
-        return f"{count / 1_000_000:.1f}M"
-    if count >= 1_000:
-        return f"{round(count / 1_000)}k"
-    return str(count)
-
-
 @dataclass(frozen=True, slots=True)
 class Row:
     """An agent as a page shows it: what its computer last gave, where that
@@ -241,6 +236,7 @@ class Views:
         computers: Computers,
         store: Store,
         fleet: Fleet,
+        service: Service,
     ) -> None:
         self._server = server
         self._pages = pages
@@ -248,12 +244,8 @@ class Views:
         self._computers = computers
         self._store = store
         self._fleet = fleet
-        pages.environment.filters |= {
-            "lasted": lasted,
-            "tokens": tokens,
-            "word": word,
-            "size": size,
-        }
+        self._service = service
+        pages.environment.filters |= {"lasted": lasted, "word": word, "size": size}
         self.routes = [
             Route("/", self._list),
             Route("/table", self._table),
@@ -261,9 +253,9 @@ class Views:
             Route("/working", self._working),
             Route("/new", self._new),
             Route("/new", self._creating, methods=["POST"]),
+            Route("/status/{ref}", self._status),
             Route("/{ref}", self._detail),
             Route("/{ref}/menu", self._menu),
-            Route("/{ref}/runtimes", self._runtimes),
             Route("/{ref}/workspace", self._workspace),
             Route("/{ref}/file", self._file),
             Route("/{ref}/config", self._configure, methods=["POST"]),
@@ -343,19 +335,10 @@ class Views:
         found = None if not short else await self._server.refs.values([short])
         return None if found is None else found[0]
 
-    async def _looked(self) -> list[ComputerSummary]:
-        """Every computer, those online asked again about what their agents
-        are once that is a minute old: a computer just connected has none
-        kept yet."""
-        everyone = list(await self._computers.computers(None))
-        for computer in everyone:
-            self._fleet.look(computer.id, computer.online)
-        return everyone
-
     async def _listing(self, request: Request, template: str) -> Response:
         account: Account = request.state.account
         visible = await self._visible(account)
-        everyone = await self._looked()
+        everyone = await self._fleet.looked()
         rows, more = await self._narrowed(request, None)
         await self._server.refs.load([computer.id for computer in everyone])
         return await self._pages.render(
@@ -450,9 +433,27 @@ class Views:
     async def _detail(self, request: Request) -> Response:
         row = await self._one(request)
         account: Account = request.state.account
-        tab = request.query_params.get("tab", "activity")
+        # what other modules put on the page, for an account that may see it
+        points = {
+            one.permission
+            for one in (*self._service.tabs, *self._service.sections)
+            if one.permission is not None
+        }
+        allowed = {
+            point
+            for point in points
+            if await self._access.can(account, "agent", row.kept.agent.id, point)
+        }
+        tabs = [
+            one
+            for one in self._service.tabs
+            if one.permission is None or one.permission in allowed
+        ]
         # the configuration is a tab only for an account that may change it
-        tab = tab if tab in TABS and (tab != "config" or row.update) else "activity"
+        own = [key for key in TABS if key != "config" or row.update]
+        tab = request.query_params.get("tab", "activity")
+        opened = next((one for one in tabs if one.key == tab), None)
+        tab = tab if opened is not None or tab in own else "activity"
         # an agent's runtimes by kind, in the order it tries them: the skills
         # shown are one kind's, the first unless another is chosen
         kinds = list(dict.fromkeys(item.kind for item in row.kept.agent.harness))
@@ -463,6 +464,21 @@ class Views:
             "agents/detail.html",
             row=row,
             tab=tab,
+            opened=opened,
+            # a tab under another lights that one in the bar it is not in
+            lit=(opened.parent or tab) if opened is not None else tab,
+            bar=sorted(
+                [*own, *(one for one in tabs if one.parent is None)],
+                key=lambda one: TABS[one] if isinstance(one, str) else one.order,
+            ),
+            sections=sorted(
+                (
+                    one
+                    for one in self._service.sections
+                    if one.permission is None or one.permission in allowed
+                ),
+                key=lambda one: one.order,
+            ),
             directory=await self._directory(row, "", 0) if tab == "workspace" else None,
             kinds=kinds,
             kind=kind,
@@ -475,28 +491,17 @@ class Views:
             now_ms=time_ns() // 1_000_000,
         )
 
-    async def _runtimes(self, request: Request) -> Response:
-        """The runtimes' part of an agent's page: how each is, with what it
-        reports and the words of its form, asked of the computer when shown."""
+    async def _status(self, request: Request) -> Response:
+        """The activity tab's section of how each of the agent's channels is
+        connected, as its computer last said."""
         row = await self._one(request)
-        providers = await self._providers(row)
-        schemas = (
-            {}
-            if providers is None
-            else {schema.kind: schema.json_schema for schema in providers.harness}
-        )
-        inspections = {}
-        if row.online:
-            for kind in {provider.kind for provider in row.kept.agent.harness}:
-                inspected = await self._inspected(row, kind)
-                if inspected is not None:
-                    inspections[kind] = inspected.inspection
         return await self._pages.render(
             request,
-            "agents/runtimes.html",
+            "agents/status.html",
             row=row,
-            schemas=schemas,
-            inspections=inspections,
+            seen=await self.followed(
+                request.state.account, {"agent": request.path_params["ref"]}
+            ),
         )
 
     async def _providers(self, row: Row) -> Providers | None:
@@ -947,7 +952,7 @@ class Views:
     ) -> Mapping[str, object] | None:
         """The sidebar badge: how many agents the account sees."""
         del scope
-        await self._looked()
+        await self._fleet.looked()
         visible = await self._access.targets(account, "agent", VIEW)
         return {"text": str(await self._store.count(visible)), "kind": "count"}
 
