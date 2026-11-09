@@ -104,9 +104,10 @@ async def _agent(ctx: Context) -> AsyncIterator[None]:
                 SidebarPanel(
                     key="agents-working",
                     src="/ui/agents/working",
-                    group="server.sidebar.workbench",
+                    group="agents.working.title",
                     permission=VIEW,
-                    order=21,
+                    # a section of its own, after every group of links
+                    order=1000,
                 )
             ),
             server.topic(
