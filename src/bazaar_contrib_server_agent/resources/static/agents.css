@@ -80,8 +80,6 @@
 
 /* the sidebar's part: those at work */
 .working-part { margin: 0; background: transparent; }
-.busy-hd { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px; font-size: 11.5px; line-height: 18px; font-weight: 600; letter-spacing: .04em; color: var(--faint); }
-.busy-hd b { font-family: var(--font-mono); line-height: 17px; color: var(--saffron); }
 .busy { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .busy a { display: grid; grid-template-columns: 12px 1fr auto; column-gap: 8px; align-items: center; padding: 6px 10px; border-radius: 8px; color: var(--text-2); text-decoration: none; font-size: 13px; line-height: 20px; }
 .busy a:hover { background: var(--surface-2); color: var(--text); }
