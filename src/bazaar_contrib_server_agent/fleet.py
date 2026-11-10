@@ -157,10 +157,10 @@ class Fleet:
                         _ACTIVITY.validate_python(value),
                     )
                     again = computer_id in self._again
-        except RemoteError, TimeoutError, ValidationError:
+        except (RemoteError, TimeoutError, ValidationError) as error:
             # a node that does not answer, or answers otherwise, keeps what
             # it said before
-            logging.getLogger(__name__).info("agents.unanswered", exc_info=True)
+            logging.getLogger(__name__).info("agents.unanswered: %r", error)
         finally:
             del self._asking[computer_id, what]
 
