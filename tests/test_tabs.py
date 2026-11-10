@@ -107,15 +107,16 @@ async def test_tabs_and_sections_another_module_registers_come_and_go(tmp_path: 
                             if turns["y"] == status["y"]:
                                 break
                             await asyncio.sleep(0.2)
-                    # a tab under another lights it while open
-                    agent = await opened(page, f"{address}?tab=log")
+                    # a tab under another lights it while open; what else the
+                    # address asks goes on to the tab's page
+                    agent = await opened(
+                        page, f"{address}?tab=log&turn=turn-1&kind=workshop-runtime"
+                    )
                     await expect(agent.locator(".tabs .tab.on")).to_have_text("动态")
-                    await expect(
-                        agent.frame_locator("iframe.pane").locator("#name")
-                    ).to_have_text("log")
-                    await expect(
-                        agent.frame_locator("iframe.pane").locator("#ref")
-                    ).to_have_text(kana.group(1))
+                    pane = agent.frame_locator("iframe.pane")
+                    await expect(pane.locator("#name")).to_have_text("log")
+                    await expect(pane.locator("#ref")).to_have_text(kana.group(1))
+                    await expect(pane.locator("#query")).to_have_text("turn=turn-1")
 
                     # a phone: one column, the main first, without the sections
                     # for wide screens alone

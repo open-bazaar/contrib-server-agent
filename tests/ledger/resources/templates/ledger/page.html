@@ -2,4 +2,4 @@
 {% block title %}{{ name }}{% endblock %}
 {% block top %}{% endblock %}
 {# the live section shows nothing, as one with no turn in progress #}
-{% block body %}{% if name != "live" %}<div class="card" style="height: 120px"><div class="card-hd"><h3 id="name">{{ name }}</h3><span class="sub" id="ref">{{ ref }}</span></div></div>{% endif %}{% endblock %}
+{% block body %}{% if name != "live" %}<div class="card" style="height: 120px"><div class="card-hd"><h3 id="name">{{ name }}</h3><span class="sub" id="ref">{{ ref }}</span><span class="sub" id="query">{{ query }}</span></div></div>{% endif %}{% endblock %}

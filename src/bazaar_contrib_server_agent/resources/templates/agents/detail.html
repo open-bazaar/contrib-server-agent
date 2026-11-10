@@ -44,7 +44,7 @@
     {% endfor %}
     {% if share %}<button class="tab" type="button" hx-get="/ui/agents/{{ short }}/share" hx-target="#drawer" hx-swap="innerHTML">{% include "agents/icons/share-2.svg" %}{{ t.text("agents.tab.share") }}</button>{% endif %}
   </nav>
-  {% if opened %}<iframe class="pane" src="{{ opened.src }}/{{ short }}" data-fit title="{{ t.text(opened.text) }}"></iframe>
+  {% if opened %}<iframe class="pane" src="{{ opened.src }}/{{ short }}{{ '?' ~ passed if passed else '' }}" data-fit title="{{ t.text(opened.text) }}"></iframe>
   {% else %}{% include "agents/" ~ tab ~ ".html" %}{% endif %}
 </section>
 <div id="drawer"></div>
