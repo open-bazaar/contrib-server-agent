@@ -12,6 +12,7 @@ lazy from collections.abc import Mapping, Sequence
 lazy from pathlib import PurePosixPath, PureWindowsPath
 lazy from time import time_ns
 lazy from typing import Any, cast
+lazy from urllib.parse import urlencode
 
 lazy from bazaar_contrib_server import Account, Pages, Server
 lazy from bazaar_contrib_server_access import Access
@@ -465,6 +466,14 @@ class Views:
             row=row,
             tab=tab,
             opened=opened,
+            # what else the address asks, for the opened tab's own page
+            passed=urlencode(
+                [
+                    (key, value)
+                    for key, value in request.query_params.multi_items()
+                    if key not in ("tab", "kind")
+                ]
+            ),
             # a tab under another lights that one in the bar it is not in
             lit=(opened.parent or tab) if opened is not None else tab,
             bar=sorted(

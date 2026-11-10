@@ -39,6 +39,7 @@ async def _ledger(ctx: Context) -> AsyncIterator[None]:
             "ledger/page.html",
             name=request.path_params["name"],
             ref=request.path_params["ref"],
+            query=request.url.query,
         )
 
     async def listed(request: Request) -> Response:
