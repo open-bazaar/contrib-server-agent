@@ -1,6 +1,6 @@
 {% extends "server/base.html" %}
 {% block title %}{{ t.text("agents.title") }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ asset('agents.css') }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('agents.css') }}"><script src="{{ asset('agents.js') }}"></script>{% endblock %}
 {% block crumbs %}<span id="count" class="count">{{ t.text("agents.counted", {"total": total, "working": working}) }}</span>{% endblock %}
 {% block actions %}{% if create %}<a class="btn primary" href="/ui/agents/new">{% include "agents/icons/plus.svg" %}{{ t.text("agents.create") }}</a>{% endif %}{% endblock %}
 {% block body %}
