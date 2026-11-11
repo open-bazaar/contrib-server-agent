@@ -43,6 +43,18 @@ def hidden(page: str, name: str) -> str:
     return found.group(1)
 
 
+async def test_the_agents_a_computer_brings_are_its_owners(tmp_path: Path):
+    async with serving() as served, client() as boss, client() as carol:
+        await admin(served, boss)
+        keepers = await role(
+            served, boss, "agents.view", "computers.view", "computers.create"
+        )
+        await boss.post(f"{served.url}{keepers}/default")
+        await through(served, carol, "carol")
+        async with computer(served, carol, tmp_path / "kana-vm", "kana-vm", [KANA]):
+            await listed(served, carol, "有马佳奈")
+
+
 async def test_a_role_shared_viewing_sees_an_agent_and_shared_changing_saves_it(
     tmp_path: Path,
 ):

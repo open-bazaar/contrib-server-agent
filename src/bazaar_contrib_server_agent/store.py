@@ -97,7 +97,8 @@ class Store:
     ) -> None:
         """The computer's agents as it gave them when asked, in place of those
         it gave before; one stored since it was asked, made or changed
-        meanwhile, is newer than the answer and stays as it is."""
+        meanwhile, is newer than the answer and stays as it is. One nobody
+        owns yet is owned by whoever owns the computer."""
 
         async def replace(session: Session) -> None:
             before = await session.select(
@@ -151,6 +152,16 @@ class Store:
                         ),
                     )
                 )
+                owned = await self._access.owners(
+                    session, "agent", [agent.id for agent in given]
+                )
+                if ownerless := [agent.id for agent in given if agent.id not in owned]:
+                    found = await self._access.owners(
+                        session, "computer", [computer_id]
+                    )
+                    if (owner_id := found.get(computer_id)) is not None:
+                        for agent_id in ownerless:
+                            await self._access.own(session, owner_id, "agent", agent_id)
             await self._gone(session, dropped)
 
         await self._database.transaction(replace)
