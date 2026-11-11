@@ -3,14 +3,15 @@ agent-configuration, kept in the store, and their state from
 agent-activity; asked while a page shows the computer or a module reads
 the agents, once what was said is a minute old, the state again as soon
 as the computer reports a turn or a connection, once more when it
-reports one while an answer is on its way, and what a runtime reports
-kept a minute for each agent and kind."""
+reports one while an answer is on its way, each state given announced,
+and what a runtime reports kept a minute for each agent and kind."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 lazy import asyncio
 lazy import logging
+lazy from collections.abc import Awaitable, Callable
 lazy from time import time_ns
 
 from pydantic import TypeAdapter, ValidationError
@@ -18,6 +19,7 @@ lazy from bazaar_contrib_server_computer import Computers, ComputerSummary
 lazy from bazaar_contrib_sidecar import RemoteError
 
 from .models import Activity, Inspection, Listing, Providers
+lazy from .contracts import AgentsSaid
 lazy from .store import Store
 
 # what was said is shown for a minute before the node is asked again
@@ -51,9 +53,14 @@ class Inspected:
 
 class Fleet:
     def __init__(
-        self, computers: Computers, store: Store, tasks: asyncio.TaskGroup
+        self,
+        computers: Computers,
+        store: Store,
+        tasks: asyncio.TaskGroup,
+        said: Callable[[AgentsSaid], Awaitable[None]],
     ) -> None:
         self._computers = computers
+        self._said = said
         self._store = store
         self._tasks = tasks
         self._listed: dict[str, tuple[int, str | None]] = {}
@@ -152,10 +159,9 @@ class Fleet:
                     value = await self._computers.call(
                         computer_id, "agent-activity", "agents"
                     )
-                    self._activity[computer_id] = (
-                        _now(),
-                        _ACTIVITY.validate_python(value),
-                    )
+                    agents = _ACTIVITY.validate_python(value)
+                    self._activity[computer_id] = (_now(), agents)
+                    await self._said(AgentsSaid(computer_id, agents))
                     again = computer_id in self._again
         except (RemoteError, TimeoutError, ValidationError) as error:
             # a node that does not answer, or answers otherwise, keeps what

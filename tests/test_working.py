@@ -1,6 +1,7 @@
 """The sidebar's part of those at work, following a real turn on a node:
 it shows an agent as the turn starts and lets it go as the turn ends; the
-list is told what each turn used."""
+list is told what each turn used; and what the node says of its agents is
+announced, the turn it runs named while it works."""
 
 from __future__ import annotations
 
@@ -38,8 +39,10 @@ async def test_a_turn_puts_the_agent_among_those_at_work_until_it_ends(tmp_path:
                 json.dumps({"sender": "tester", "text": "hello"}),
             )
             await working(served, boss, "有马佳奈", True)
+            assert any(said.agents["kana"].turns for said in served.said)
             await asyncio.to_thread((workshop / "release").write_text, "")
             await working(served, boss, "有马佳奈", False)
+            assert not served.said[-1].agents["kana"].turns
             # a list drawn between two turns is told what the second used,
             # its agent idle again as it was
             listing = seen(

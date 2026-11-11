@@ -103,6 +103,9 @@ class Activity(_Answer):
     event_at_ms: int | None
     started_at_ms: int | None
     working: Working | None
+    # the turns running and when the node said so, from nodes that say them
+    turns: tuple[str, ...] | None = None
+    said_at_ms: int | None = None
     channels: tuple[ChannelStatus, ...]
     runtimes: tuple[RuntimeStatus, ...]
 

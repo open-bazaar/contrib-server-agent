@@ -28,7 +28,15 @@ from bazaar_contrib_server_computer import (
 from bazaar_contrib_server_database import SERVER_DB, SERVER_SCHEMA
 from bazaar_core import Context, Contrib, ServiceKey
 
-from .contracts import AGENTS, Agent, Agents, AgentSection, AgentTab
+from .contracts import (
+    AGENTS,
+    AGENTS_SAID,
+    Agent,
+    Agents,
+    AgentSection,
+    AgentsSaid,
+    AgentTab,
+)
 from .models import Activity, AgentView
 lazy from .fleet import Fleet
 lazy from .pages import CREATE, DELETE, UPDATE, VIEW, Views
@@ -38,12 +46,14 @@ lazy from .store import Store
 
 __all__ = [
     "AGENTS",
+    "AGENTS_SAID",
     "Activity",
     "Agent",
     "AgentSection",
     "AgentTab",
     "AgentView",
     "Agents",
+    "AgentsSaid",
     "agent",
 ]
 
@@ -66,7 +76,9 @@ async def _agent(ctx: Context) -> AsyncIterator[None]:
         asyncio.TaskGroup() as tasks,
     ):
         store = Store(ctx.accept(SERVER_DB), access)
-        fleet = Fleet(computers, store, tasks)
+        fleet = Fleet(
+            computers, store, tasks, lambda said: ctx.announce(AGENTS_SAID, said)
+        )
         service = Service(access, computers, store, fleet)
         pages = await server.pages("agents", __name__)
         views = Views(server, pages, access, computers, store, fleet, service)
