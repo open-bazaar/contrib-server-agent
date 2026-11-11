@@ -61,7 +61,7 @@
 "agents.workspace.size" = "大小"
 "agents.workspace.modified" = "修改时间"
 "agents.workspace.empty" = "这里是空的"
-"agents.workspace.more" = "显示更多"
+"agents.loading" = "正在加载更多"
 "agents.workspace.left" = "已列出 {{ listed }} 项，还有 {{ left }} 项"
 "agents.workspace.copy" = "复制路径"
 "agents.workspace.copied" = "已复制"

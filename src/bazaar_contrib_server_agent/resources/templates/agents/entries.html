@@ -22,8 +22,8 @@
 {% endfor %}
 {% set listed = offset + directory.entries | length %}
 {% if listed < directory.total %}
-<button class="fr more" type="button" style="--depth: {{ depth }}" hx-get="/ui/agents/{{ short }}/workspace?path={{ directory.path | urlencode }}&depth={{ depth }}&offset={{ listed }}" hx-swap="outerHTML">
-  <span class="nm">{{ t.text("agents.workspace.more") }}<small>{{ t.text("agents.workspace.left", {"listed": listed, "left": directory.total - listed}) }}</small></span><span></span><span></span>
-</button>
+<div class="fr more" style="--depth: {{ depth }}" hx-get="/ui/agents/{{ short }}/workspace?path={{ directory.path | urlencode }}&depth={{ depth }}&offset={{ listed }}" hx-trigger="intersect once" hx-swap="outerHTML">
+  <span class="nm"><span class="spin"></span>{{ t.text("agents.loading") }}<small>{{ t.text("agents.workspace.left", {"listed": listed, "left": directory.total - listed}) }}</small></span><span></span><span></span>
+</div>
 {% endif %}
 {% endif %}

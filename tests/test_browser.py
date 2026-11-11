@@ -200,12 +200,14 @@ async def test_an_agent_is_made_changed_read_shared_and_removed(
                     "iframe[src^='/ui/agents/']:not([src*='working'])"
                 )
                 await agent.get_by_role("button", name=re.compile("^notes ")).click()
-                more = agent.locator(".fr.more")
-                await expect(more).to_contain_text("还有 10 项")
-                await more.click()
+                # the rest come in as the end of the first page is scrolled to
+                await agent.locator(
+                    ".fr", has_text="2026-09-50.md"
+                ).scroll_into_view_if_needed()
                 await expect(
                     agent.locator(".fr", has_text="2026-09-60.md")
                 ).to_have_count(1)
+                await expect(agent.locator(".fr.more")).to_have_count(0)
                 await agent.get_by_role("button", name=re.compile("^MEMORY.md")).click()
                 await expect(agent.locator(".drawer .prose h1")).to_have_text(
                     "记忆索引"

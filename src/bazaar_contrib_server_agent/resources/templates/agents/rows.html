@@ -17,4 +17,4 @@
   </div>
 </div>
 {% endfor %}
-{% if more and rows %}<div class="more-rows" hx-get="/ui/agents/more?after={{ ref(rows[-1].kept.agent.id) }}" hx-include="closest .content" hx-trigger="revealed" hx-swap="outerHTML"></div>{% endif %}
+{% if more and rows %}<div class="more-rows paging" hx-get="/ui/agents/more?after={{ ref(rows[-1].kept.agent.id) }}" hx-include="closest .content" hx-trigger="revealed" hx-swap="outerHTML"><span class="spin"></span>{{ t.text("agents.loading") }}</div>{% endif %}
