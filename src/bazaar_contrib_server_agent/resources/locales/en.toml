@@ -65,6 +65,7 @@
 "agents.workspace.left" = "{{ listed }} listed, {{ left }} more"
 "agents.workspace.copy" = "Copy path"
 "agents.workspace.copied" = "Copied"
+"agents.workspace.copy.failed" = "Not copied, select it to copy"
 "agents.workspace.unviewable" = "This file can't be shown here"
 "agents.workspace.unviewable_why" = "Only text files up to 1 MB can be shown"
 "agents.skills.workspace" = "Workspace"

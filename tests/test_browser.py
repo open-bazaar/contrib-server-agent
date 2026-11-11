@@ -86,6 +86,7 @@ async def test_an_agent_is_made_changed_read_shared_and_removed(
                 context = await browser.new_context(
                     locale="zh-CN", viewport={"width": size[0], "height": size[1]}
                 )
+                await context.grant_permissions(["clipboard-read"], origin=served.url)
                 await context.add_cookies(
                     [
                         {"name": c.name, "value": c.value or "", "url": served.url}
@@ -208,6 +209,17 @@ async def test_an_agent_is_made_changed_read_shared_and_removed(
                 await agent.get_by_role("button", name=re.compile("^MEMORY.md")).click()
                 await expect(agent.locator(".drawer .prose h1")).to_have_text(
                     "记忆索引"
+                )
+                # its path is copied, the page served over plain http to an
+                # address on the network too, where the clipboard is not given
+                detail = page.frame(url=re.compile(r"/ui/agents/\d+"))
+                assert detail
+                await detail.evaluate(
+                    "Object.defineProperty(navigator, 'clipboard', {value: undefined})"
+                )
+                await agent.locator(".fpath .copy").click()
+                assert (await page.evaluate("navigator.clipboard.readText()")).endswith(
+                    "MEMORY.md"
                 )
                 await agent.locator(".overlay .close").click()
                 await agent.get_by_role(

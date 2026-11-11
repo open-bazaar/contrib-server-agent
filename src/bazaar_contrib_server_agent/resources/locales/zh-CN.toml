@@ -65,6 +65,7 @@
 "agents.workspace.left" = "已列出 {{ listed }} 项，还有 {{ left }} 项"
 "agents.workspace.copy" = "复制路径"
 "agents.workspace.copied" = "已复制"
+"agents.workspace.copy.failed" = "没复制上，请手动选中复制"
 "agents.workspace.unviewable" = "暂不支持查看该文件"
 "agents.workspace.unviewable_why" = "只能查看 1 MB 以内的文本文件"
 "agents.skills.workspace" = "工作区"
