@@ -40,7 +40,7 @@
           {% set tone, state = ("warn", "signed_out") if server.auth == "signed_out" else ("err", "failed") if failed else ("muted", link) if link in ("connecting", "disabled") else ("ok", link) if link == "connected" else ("ok", server.auth) if server.auth else (none, none) %}
           <div class="srv-hd"><b>{{ server.name }}</b>{% if tone %}<span class="auth {{ tone }}">{{ t.text("agents.mcp.state." ~ state) }}</span>{% endif %}</div>
           {% if failed %}<p class="why">{{ link.reason }}</p>{% endif %}
-          {% if server.tools %}<div class="tools">{% for tool in server.tools[:8] %}<span title="{{ tool.description or '' }}">{{ tool.name }}</span>{% endfor %}{% if server.tools | length > 8 %}<span class="more">{{ t.text("agents.mcp.more", {"n": server.tools | length - 8}) }}</span>{% endif %}</div>{% endif %}
+          {% if server.tools %}<div class="tools">{% for tool in server.tools[:8] %}<span{% if tool.description %} data-tip="{{ tool.description }}"{% endif %}>{{ tool.name }}</span>{% endfor %}{% if server.tools | length > 8 %}<span class="more">{{ t.text("agents.mcp.more", {"n": server.tools | length - 8}) }}</span>{% endif %}</div>{% endif %}
         </div>
         {% endfor %}
       </div>

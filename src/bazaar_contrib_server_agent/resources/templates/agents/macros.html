@@ -9,7 +9,7 @@
 {% set state = row.state %}
 {% if state == "working" %}<span class="status work"><span class="lantern work"></span>{{ row.activity.working.since_ms | lasted }}</span>
 {% elif state == "failed" %}<span class="status fail st-e"><span class="lantern fail"></span>{{ row.activity.reason or t.text("agents.state.failed") }}</span>
-{% elif state == "offline" %}<span class="status off" title="{{ t.text('agents.state.offline') }}"><span class="lantern off"></span></span>
+{% elif state == "offline" %}<span class="status off" data-tip="{{ t.text('agents.state.offline') }}"><span class="lantern off"></span></span>
 {% else %}<span class="status on"><span class="lantern on"></span>{{ t.text("agents.idle") }}</span>{% endif %}
 {% endmacro %}
 
