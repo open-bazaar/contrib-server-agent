@@ -61,7 +61,7 @@
 "agents.workspace.size" = "Size"
 "agents.workspace.modified" = "Modified"
 "agents.workspace.empty" = "Nothing here"
-"agents.workspace.more" = "Show more"
+"agents.loading" = "Loading more"
 "agents.workspace.left" = "{{ listed }} listed, {{ left }} more"
 "agents.workspace.copy" = "Copy path"
 "agents.workspace.copied" = "Copied"
