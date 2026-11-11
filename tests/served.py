@@ -25,6 +25,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
 
+from bazaar_contrib_server_agent import AGENTS_SAID, AgentsSaid
+
 ENTRIES = (
     ("timer-wheel", {}),
     ("http", {"listen": "127.0.0.1:0"}),
@@ -47,6 +49,8 @@ class Served:
     url: str
     password: str
     door: Door
+    # what server-agent announced of the computers' agents, as it did
+    said: list[AgentsSaid]
 
 
 @asynccontextmanager
@@ -57,6 +61,11 @@ async def serving() -> AsyncIterator[Served]:
     class Printed(logging.Handler):
         def emit(self, record: logging.LogRecord) -> None:
             printed.append(record.getMessage())
+
+    said: list[AgentsSaid] = []
+
+    async def hear(ctx: Context, value: AgentsSaid) -> None:
+        said.append(value)
 
     @asynccontextmanager
     async def look(ctx: Context) -> AsyncIterator[None]:
@@ -100,7 +109,10 @@ async def serving() -> AsyncIterator[Served]:
                     ),
                 ),
                 ContribEntry(
-                    name="look", definition=Contrib(accepts=[HTTP], lifespan=look)
+                    name="look",
+                    definition=Contrib(
+                        accepts=[HTTP], lifespan=look, listen={AGENTS_SAID: hear}
+                    ),
                 ),
             )
         }
@@ -118,7 +130,7 @@ async def serving() -> AsyncIterator[Served]:
                 ),
                 "",
             )
-            yield Served(hub, found["url"], password, found["door"])
+            yield Served(hub, found["url"], password, found["door"], said)
     finally:
         logger.removeHandler(handler)
 

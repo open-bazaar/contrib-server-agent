@@ -5,10 +5,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal, Protocol
-lazy from collections.abc import Sequence
+lazy from collections.abc import Mapping, Sequence
 lazy from contextlib import AbstractAsyncContextManager
 
-from bazaar_core import ServiceKey
+from bazaar_core import EventKey, ServiceKey
 from pydantic import BaseModel, ConfigDict, Field
 lazy from bazaar_contrib_server import Account
 
@@ -93,3 +93,14 @@ class Agents(Protocol):
 
 
 AGENTS = ServiceKey[Agents]("server.agents")
+
+
+@dataclass(frozen=True, slots=True)
+class AgentsSaid:
+    """How a computer's agents are, as its node said each time it was asked."""
+
+    computer_id: str
+    agents: Mapping[str, Activity]
+
+
+AGENTS_SAID = EventKey[AgentsSaid]("server.agents.said")
