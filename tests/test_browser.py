@@ -140,11 +140,21 @@ async def test_an_agent_is_made_changed_read_shared_and_removed(
                 ]
 
                 # changed: renamed, the runtimes swapped, a channel edited with its
-                # token left blank
-                await page.goto(f"{page.url}?tab=config")
+                # token left blank; reached from the list and its tab, the page
+                # changing in place
+                await page.goto(f"{served.url}/agents")
+                listing = next(
+                    one for one in page.frames if one.url.endswith("/ui/agents/")
+                )
+                await listing.evaluate("window.kept = true")
                 agent = page.frame_locator(
                     "iframe[src^='/ui/agents/']:not([src*='working'])"
                 )
+                await agent.locator("a.stretch", has_text="小满").click()
+                await page.wait_for_url(re.compile(r"/agents/\d+$"))
+                await agent.locator("a.tab", has_text="配置").click()
+                await page.wait_for_url(re.compile(r"tab=config$"))
+                assert await listing.evaluate("window.kept === true")
                 rows = agent.locator(".plist[x-data] .prow")
                 await expect(rows).to_have_count(2)
                 await settled(
