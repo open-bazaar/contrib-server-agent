@@ -378,7 +378,11 @@ class RuntimeBuilderParameters(HarnessBuilderConfig):
                     auth=McpAuth.NONE,
                     tools=tuple(
                         HarnessMcpTool(name=name, input_schema={"type": "object"})
-                        for name in ("save_note", "list_notes", "search_notes")
+                        for name in (
+                            "save_note",
+                            "list_notes",
+                            "codex_document_control.execute_document_command",
+                        )
                     ),
                 ),
                 HarnessMcpServer(

@@ -260,6 +260,17 @@ async def test_an_agent_is_made_changed_read_shared_and_removed(
                 )
                 await expect(agent.locator(".skills").first).to_contain_text("notes")
                 await expect(agent.locator(".mcp")).to_contain_text("github")
+                long_tool = agent.locator(
+                    ".tools span",
+                    has_text="codex_document_control.execute_document_command",
+                )
+                await expect(long_tool).to_be_visible()
+                assert await long_tool.evaluate("""tool => {
+                    const card = tool.closest('.card').getBoundingClientRect();
+                    const row = tool.getBoundingClientRect();
+                    return tool.scrollWidth <= tool.clientWidth && row.left >= card.left && row.right <= card.right;
+                }""")
+                await long_tool.scroll_into_view_if_needed()
 
                 # shared with a role, then removed
                 await agent.locator(".tabs button", has_text="共享").click()
