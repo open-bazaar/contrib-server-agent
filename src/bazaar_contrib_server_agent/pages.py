@@ -211,6 +211,7 @@ class Row:
     activity: Activity | None
     update: bool
     delete: bool
+    share: bool
 
     @property
     def online(self) -> bool:
@@ -256,7 +257,6 @@ class Views:
             Route("/new", self._creating, methods=["POST"]),
             Route("/status/{ref}", self._status),
             Route("/{ref}", self._detail),
-            Route("/{ref}/menu", self._menu),
             Route("/{ref}/workspace", self._workspace),
             Route("/{ref}/file", self._file),
             Route("/{ref}/config", self._configure, methods=["POST"]),
@@ -277,8 +277,7 @@ class Views:
         return await self._access.targets(account, "agent", VIEW)
 
     async def _shown(self, account: Account, kept: Sequence[Kept]) -> list[Row]:
-        """The agents as the account sees them, in a fixed number of lookups
-        however many there are."""
+        """The agents as the account sees them, with their available actions."""
         computer_ids = sorted({item.computer_id for item in kept})
         computers = {
             computer.id: computer
@@ -298,6 +297,7 @@ class Views:
                     and (updatable is None or item.agent.id in updatable),
                     delete=account.allows(DELETE)
                     and (deletable is None or item.agent.id in deletable),
+                    share=await self._access.can_share(account, "agent", item.agent.id),
                 )
             )
         return rows
@@ -938,23 +938,6 @@ class Views:
             )
         await self._store.remove(row.kept.computer_id, row.kept.agent.id)
         return Response(status_code=204, headers={"HX-Trigger": "agents:removed"})
-
-    async def _menu(self, request: Request) -> Response:
-        """A row's menu, opened: what the account may do with that agent."""
-        account: Account = request.state.account
-        found = await self._server.refs.values([request.path_params["ref"]])
-        if found is None or not await self._access.can(
-            account, "agent", found[0], VIEW
-        ):
-            raise HTTPException(status_code=404)
-        return await self._pages.render(
-            request,
-            "agents/menu.html",
-            agent_id=found[0],
-            update=await self._access.can(account, "agent", found[0], UPDATE),
-            delete=await self._access.can(account, "agent", found[0], DELETE),
-            share=await self._access.can_share(account, "agent", found[0]),
-        )
 
     async def counted(
         self, account: Account, scope: Mapping[str, str]

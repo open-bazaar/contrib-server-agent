@@ -11,8 +11,8 @@
   {{ m.usage(row) }}
   <div class="acts">
     <div x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
-      <button class="more" type="button" :aria-expanded="open" @click="open = !open" hx-get="/ui/agents/{{ short }}/menu" hx-trigger="click once" hx-target="next .pop" hx-swap="innerHTML" aria-label="{{ t.text('agents.actions') }}">{% include "agents/icons/ellipsis.svg" %}</button>
-      <div class="pop" x-show="open" x-cloak></div>
+      <button class="more" type="button" :aria-expanded="open" @click="open = !open" aria-label="{{ t.text('agents.actions') }}">{% include "agents/icons/ellipsis.svg" %}</button>
+      <div class="pop" x-show="open" x-cloak>{% include "agents/menu.html" %}</div>
     </div>
   </div>
 </div>

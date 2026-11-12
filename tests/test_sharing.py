@@ -74,7 +74,10 @@ async def test_a_role_shared_viewing_sees_an_agent_and_shared_changing_saves_it(
             await boss.post(
                 sharing, data={"roles": [given], "grant": [f"{given} agents.view"]}
             )
-            await listed(served, bob, "有马佳奈")
+            viewer_list = await listed(served, bob, "有马佳奈")
+            assert f"/ui/agents/{kana}/share" not in viewer_list
+            assert f"/ui/agents/{kana}/remove" not in viewer_list
+            assert ">Open</a>" in viewer_list
             # shared for viewing alone, its configuration is not bob's to save
             refused = await bob.post(
                 f"{served.url}/ui/agents/{kana}/config", data={"action": "save"}

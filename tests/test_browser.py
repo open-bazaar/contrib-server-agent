@@ -151,6 +151,27 @@ async def test_an_agent_is_made_changed_read_shared_and_removed(
                 agent = page.frame_locator(
                     "iframe[src^='/ui/agents/']:not([src*='working'])"
                 )
+                # Menus are already in the list and work without a request.
+                small = agent.locator(".tr.row", has_text="小满")
+                menu = small.locator(".pop")
+                await expect(menu.locator("a")).to_have_text("配置")
+                await expect(
+                    menu.get_by_role("button", name="分享", include_hidden=True)
+                ).to_have_count(1)
+                await expect(
+                    menu.get_by_role("button", name="删除", include_hidden=True)
+                ).to_have_count(1)
+                await context.set_offline(True)
+                await small.locator(".more").click()
+                await expect(menu).to_be_visible()
+                await expect(menu.get_by_role("link", name="配置")).to_be_visible()
+                await small.locator(".more").press("Escape")
+                await expect(menu).to_be_hidden()
+                await small.locator(".more").click()
+                await expect(menu).to_be_visible()
+                await small.locator(".more").click()
+                await expect(menu).to_be_hidden()
+                await context.set_offline(False)
                 await agent.locator("a.stretch", has_text="小满").click()
                 await page.wait_for_url(re.compile(r"/agents/\d+$"))
                 await agent.locator("a.tab", has_text="配置").click()
