@@ -4,12 +4,12 @@
 {# a plugin's logo, standing for its name; a puzzle piece for a kind without one #}
 {% macro logo(kind) %}<span class="g {{ kind }}">{% include ["agents/logos/" ~ kind ~ ".svg", "agents/icons/puzzle.svg"] %}</span>{% endmacro %}
 
-{# how an agent is: at work for how long, idle, failed and why, or only a lantern while its computer is away #}
+{# how an agent is: at work for how long, idle, failed and why, or offline while its computer is away #}
 {% macro status(row) %}
 {% set state = row.state %}
 {% if state == "working" %}<span class="status work"><span class="lantern work"></span>{{ row.activity.working.since_ms | lasted }}</span>
 {% elif state == "failed" %}<span class="status fail st-e"><span class="lantern fail"></span>{{ row.activity.reason or t.text("agents.state.failed") }}</span>
-{% elif state == "offline" %}<span class="status off" data-tip="{{ t.text('agents.state.offline') }}"><span class="lantern off"></span></span>
+{% elif state == "offline" %}<span class="status off" data-tip="{{ t.text('agents.state.offline') }}"><span class="lantern off"></span>{{ t.text("agents.state.offline") }}</span>
 {% else %}<span class="status on"><span class="lantern on"></span>{{ t.text("agents.idle") }}</span>{% endif %}
 {% endmacro %}
 
