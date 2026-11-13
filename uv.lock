@@ -344,7 +344,7 @@ wheels = [
 
 [[package]]
 name = "bazaar-contrib-server-agent"
-version = "0.3.0rc12"
+version = "0.3.0rc13"
 source = { editable = "." }
 dependencies = [
     { name = "bazaar-contrib-audit" },
