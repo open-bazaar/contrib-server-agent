@@ -173,3 +173,5 @@
 "agents.mcp.state.connecting" = "Connecting"
 "agents.mcp.state.disabled" = "Disabled"
 "agents.mcp.state.failed" = "Failed to connect"
+
+"agents.market" = "Go to market"

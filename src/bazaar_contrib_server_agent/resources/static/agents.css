@@ -424,3 +424,9 @@ input.input:focus-visible, .input:has(input:focus-visible) { outline: none; bord
 :root[data-layout="narrow"] .pcs { grid-template-columns: 1fr; }
 :root[data-layout="narrow"] .rows { grid-template-columns: 80px 1fr; }
 :root[data-layout="narrow"] .preview { display: none; }
+
+.market-pick { text-decoration: none; border-style: dashed; }
+.market-pick .g { color: var(--muted); }
+.add .pop .market-menu { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--text-2); text-decoration: none; font-size: 13.5px; }
+.add .pop .market-menu:hover { background: var(--surface-2); color: var(--text); }
+.add .pop .market-menu > svg { width: 20px; height: 20px; flex: none; }
