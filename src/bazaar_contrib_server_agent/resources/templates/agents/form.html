@@ -26,7 +26,7 @@
       {# adding one: a kind the computer can run, its fields in the drawer #}
       <div class="add" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
         <button type="button" class="link" :aria-expanded="open" @click="open = !open">{% include "agents/icons/plus.svg" %}{{ t.text("agents.config.add_" ~ label) }}</button>
-        <div class="pop" x-show="open" x-cloak>{% for one in offered[label] %}<button type="button" hx-post="/ui/agents/{{ short }}/item" hx-include="#cfg" hx-vals='{{ {"label": label, "place": "new", "kind": one.kind} | tojson }}' hx-target="#cfgdrawer" hx-swap="innerHTML" @click="open = false">{{ m.logo(one.kind) }}{{ one.kind }}</button>{% else %}<span class="none">{{ t.text("agents.config.none_offered", {"computer": row.computer.name}) }}</span>{% endfor %}</div>
+        <div class="pop" x-show="open" x-cloak>{% for one in offered[label] %}<button type="button" hx-post="/ui/agents/{{ short }}/item" hx-include="#cfg" hx-vals='{{ {"label": label, "place": "new", "kind": one.kind} | tojson }}' hx-target="#cfgdrawer" hx-swap="innerHTML" @click="open = false">{{ m.logo(one.kind) }}{{ one.kind }}</button>{% else %}<span class="none">{{ t.text("agents.config.none_offered", {"computer": row.computer.name}) }}</span>{% endfor %}{% if market %}<hr><a class="market-menu" href="{{ market }}" target="_top">{% include "agents/icons/plus.svg" %}<span>{{ t.text("agents.market") }}</span></a>{% endif %}</div>
       </div>
     </div>
     <div class="plist"{% if label == "harness" %} x-data="reorder"{% endif %}>

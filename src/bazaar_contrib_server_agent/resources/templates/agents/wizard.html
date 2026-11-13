@@ -58,6 +58,7 @@
       {% else %}
       <p class="none">{{ t.text("agents.config.none_offered", {"computer": chosen.name if chosen else "—"}) }}</p>
       {% endfor %}
+      {% if market %}<a class="pick market-pick" href="{{ market }}" target="_top"><span class="g">{% include "agents/icons/plus.svg" %}</span><b>{{ t.text("agents.market") }}</b></a>{% endif %}
     </div>
     <div class="plist"{% if label == "harness" %} x-data="reorder"{% endif %}>
       {% for item in drafted[label] %}

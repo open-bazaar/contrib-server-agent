@@ -173,3 +173,5 @@
 "agents.mcp.state.connecting" = "连接中"
 "agents.mcp.state.disabled" = "已停用"
 "agents.mcp.state.failed" = "连接失败"
+
+"agents.market" = "前往市场"

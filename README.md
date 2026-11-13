@@ -10,3 +10,8 @@ entry = "server-agent"
 ```
 
 A contrib puts tabs and activity sections on an agent's page, and reads the agents an account may see, by accepting `AGENTS`.
+
+When the Contrib market is enabled, the channel and runtime choices end with
+"Go to market" on both the new-agent wizard and the configuration page. The
+link selects that agent's computer and is shown only to accounts with market
+view access to it. Empty choices still retain the link.

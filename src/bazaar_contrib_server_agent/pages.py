@@ -494,7 +494,7 @@ class Views:
             inspected=await self._inspected(row, kind)
             if tab == "skills" and kind is not None
             else None,
-            **(await self._editing(row) if tab == "config" else {}),
+            **(await self._editing(account, row) if tab == "config" else {}),
             share=await self._access.can_share(account, "agent", row.kept.agent.id),
             seen=await self.followed(account, {"agent": request.path_params["ref"]}),
             now_ms=time_ns() // 1_000_000,
@@ -523,7 +523,15 @@ class Views:
         except RemoteError, TimeoutError, ValidationError:
             return None
 
-    async def _editing(self, row: Row) -> dict[str, Any]:
+    async def _market(self, account: Account, computer: str) -> str | None:
+        if any(
+            point.point == "contribs.view" for point in self._server.permissions
+        ) and await self._access.can(account, "computer", computer, "contribs.view"):
+            await self._server.refs.load([computer])
+            return f"/market?computer={self._server.refs.ref(computer)}"
+        return None
+
+    async def _editing(self, account: Account, row: Row) -> dict[str, Any]:
         """The config tab's start: the agent as its computer holds it now,
         the revision an edit is checked against, and the schemas its
         channels and runtimes are drawn from; nothing while the computer is
@@ -545,6 +553,7 @@ class Views:
             "dirty": False,
             "failed": None,
             "saved": False,
+            "market": await self._market(account, row.kept.computer_id),
         }
 
     async def _configure(self, request: Request) -> Response:
@@ -552,6 +561,7 @@ class Views:
         edited, removed or moved; saved, it goes to the computer in one
         edit checked against the revision the tab started from."""
         row = await self._one(request, UPDATE)
+        market = await self._market(request.state.account, row.kept.computer_id)
         form = await request.form()
         drafted = json.loads(str(form["draft"]))
         revision = str(form.get("revision") or "") or None
@@ -602,8 +612,9 @@ class Views:
                     dirty=True,
                     failed=str(error),
                     saved=False,
+                    market=market,
                 )
-            editing = await self._editing(row)
+            editing = await self._editing(request.state.account, row)
             if editing["drafted"] is None:
                 # saved, but the computer does not give it back now: the tab
                 # drawn anew says so
@@ -629,6 +640,7 @@ class Views:
             dirty=True,
             failed=None,
             saved=False,
+            market=market,
         )
 
     async def _item(self, request: Request) -> Response:
@@ -738,6 +750,9 @@ class Views:
             "chosen": chosen,
             "providers": providers,
             "inspected": inspected,
+            "market": await self._market(account, chosen.id)
+            if chosen is not None
+            else None,
             "failed": None,
         }
 
