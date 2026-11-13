@@ -1,6 +1,6 @@
 [project]
 name = "bazaar-contrib-server-agent"
-version = "0.3.0rc13"
+version = "0.3.0rc14"
 description = "The agents of the Bazaar Compute server: the agents on its computers, their pages, and who may see and change them"
 readme = "README.md"
 license = "Apache-2.0"
