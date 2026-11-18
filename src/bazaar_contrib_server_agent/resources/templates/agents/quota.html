@@ -1,0 +1,24 @@
+{% extends "server/base.html" %}
+{% import "agents/macros.html" as m with context %}
+{% set agent = row.kept.agent %}
+{% set short = ref(agent.id) %}
+{% block title %}{{ t.text("agents.quota.title") }}{% endblock %}
+{% block top %}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('agents.css') }}">{% endblock %}
+{% block body %}
+<div id="quota" data-topic="agents.agent" data-scope='{{ {"agent": short | string} | tojson }}' data-seen='{{ seen | tojson }}' hx-get="/ui/agents/quota/{{ short }}" hx-select="#quota" hx-swap="outerHTML" hx-trigger="bazaar:change">
+  {% if agent.harness %}
+  <div class="card">
+    <div class="card-hd"><h3>{{ t.text("agents.quota.title") }}</h3></div>
+    <div class="chans quota-details">
+      {% for provider in agent.harness %}
+      <div class="quota-runtime">
+        <div class="chan-hd">{{ m.logo(provider.kind) }}<b>{{ m.headline(row, "harness", provider) }}</b></div>
+        {{ m.quota(row, provider, true) }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -86,7 +86,12 @@ async def test_tabs_and_sections_another_module_registers_come_and_go(tmp_path: 
                     # the activity is the sections, by column and order, each
                     # given the agent's ref
                     assert await titles(agent, "main") == ["live", "turns"]
-                    assert await titles(agent, "side") == ["status", "usage", "notes"]
+                    assert await titles(agent, "side") == [
+                        "status",
+                        "quota",
+                        "usage",
+                        "notes",
+                    ]
                     await expect(
                         agent.frame_locator("iframe[title=turns]").locator("#ref")
                     ).to_have_text(kana.group(1))
@@ -128,6 +133,11 @@ async def test_tabs_and_sections_another_module_registers_come_and_go(tmp_path: 
                         ).to_be_hidden()
                     turns = agent.locator("iframe[title=turns]")
                     usage = agent.locator("iframe[title=usage]")
+                    quota = agent.locator("iframe[title=quota]")
+                    await expect(quota).to_be_visible()
+                    await expect(
+                        quota.content_frame.get_by_role("heading", name="剩余额度")
+                    ).to_be_visible()
                     await expect(usage).to_be_visible()
                     above = await turns.bounding_box()
                     below = await usage.bounding_box()
@@ -142,6 +152,6 @@ async def test_tabs_and_sections_another_module_registers_come_and_go(tmp_path: 
                     agent.locator(".tabs .tab", has_text="会话")
                 ).to_have_count(0)
                 assert await titles(agent, "main") == []
-                assert await titles(agent, "side") == ["status"]
+                assert await titles(agent, "side") == ["status", "quota"]
             finally:
                 await browser.close()

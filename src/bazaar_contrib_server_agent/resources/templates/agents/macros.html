@@ -23,11 +23,47 @@
 </div>
 {% endmacro %}
 
+{% macro quota(row, provider, detailed=false) %}
+{% set runtime = (row.activity.runtimes | selectattr("connection", "equalto", provider.connection) | first | default(none)) if row.activity else none %}
+{% if runtime and runtime.quota and runtime.quota.windows %}
+<div class="quota-readings">
+  {% for window in runtime.quota.windows %}
+  {% set minutes = window.duration_minutes %}
+  {% set pct = "%g" | format(window.remaining_pct | round(1)) %}
+  {% set reset = detailed and window.resets_at_ms is not none %}
+  <span class="quota-window">
+    <span class="quota-ring" role="meter" aria-label="{{ t.text('agents.quota.title') }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pct }}" aria-valuetext="{{ t.text('agents.quota.remaining', {'pct': pct}) }}" style="--remaining: {{ pct }}%">{{ pct }}%</span>
+    {% if window.name or minutes or reset %}
+    <span class="quota-meta">
+      {% if window.name or minutes %}
+      <span class="quota-period">
+        {%- if window.name %}{{ window.name }} {% endif -%}
+        {%- if minutes and minutes % 1440 == 0 %}{{ t.text("agents.quota.days", {"n": minutes // 1440}) }}{% elif minutes and minutes % 60 == 0 %}{{ t.text("agents.quota.hours", {"n": minutes // 60}) }}{% elif minutes %}{{ t.text("agents.quota.minutes", {"n": minutes}) }}{% endif -%}
+      </span>
+      {% endif %}
+      {% if reset %}<span>{{ t.text("agents.quota.resets", {"when": window.resets_at_ms | moment}) }}</span>{% endif %}
+    </span>
+    {% endif %}
+  </span>
+  {% endfor %}
+</div>
+{% else %}<div class="quota-readings">{{ t.text("agents.quota.unknown") }}</div>{% endif %}
+{% endmacro %}
+
 {# what an agent runs on, in the order it tries them: the first in use, the rest standing by #}
 {% macro runtimes(row) %}
-<div class="prov">
+<div class="prov runtimes">
   {% for provider in row.kept.agent.harness %}
-  <span class="p{% if not loop.first %} alt{% endif %}">{{ logo(provider.kind) }}<b>{{ provider["values"].get("model") or t.text("agents.model.default") }}</b>{% if not loop.first %}<em>{{ t.text("agents.standby") }}</em>{% endif %}</span>
+  <div class="runtime-line">
+    <span class="p{% if not loop.first %} alt{% endif %}">
+      {{ logo(provider.kind) }}
+      <span class="runtime-model">
+        <b>{{ provider["values"].get("model") or t.text("agents.model.default") }}</b>
+        {% if not loop.first %}<em>{{ t.text("agents.standby") }}</em>{% endif %}
+      </span>
+    </span>
+    {{ quota(row, provider) }}
+  </div>
   {% else %}<span class="p none">—</span>{% endfor %}
 </div>
 {% endmacro %}

@@ -256,6 +256,7 @@ class Views:
             Route("/new", self._new),
             Route("/new", self._creating, methods=["POST"]),
             Route("/status/{ref}", self._status),
+            Route("/quota/{ref}", self._quota),
             Route("/{ref}", self._detail),
             Route("/{ref}/workspace", self._workspace),
             Route("/{ref}/file", self._file),
@@ -507,6 +508,17 @@ class Views:
         return await self._pages.render(
             request,
             "agents/status.html",
+            row=row,
+            seen=await self.followed(
+                request.state.account, {"agent": request.path_params["ref"]}
+            ),
+        )
+
+    async def _quota(self, request: Request) -> Response:
+        row = await self._one(request)
+        return await self._pages.render(
+            request,
+            "agents/quota.html",
             row=row,
             seen=await self.followed(
                 request.state.account, {"agent": request.path_params["ref"]}
