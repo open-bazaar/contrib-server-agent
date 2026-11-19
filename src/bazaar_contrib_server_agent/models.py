@@ -87,12 +87,25 @@ class ChannelStatus(_Answer):
     error: str | None
 
 
+class QuotaWindow(_Answer):
+    name: str | None = None
+    duration_minutes: int | None = None
+    remaining_pct: float
+    resets_at_ms: int | None = None
+
+
+class QuotaSnapshot(_Answer):
+    observed_at_ms: int
+    windows: tuple[QuotaWindow, ...]
+
+
 class RuntimeStatus(_Answer):
     kind: str
     connection: str
     state: str
     in_use: bool
     banned_until_ms: int | None
+    quota: QuotaSnapshot | None = None
 
 
 class Activity(_Answer):

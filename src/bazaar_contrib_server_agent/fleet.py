@@ -135,6 +135,10 @@ class Fleet:
                     "" if activity.working is None else str(activity.working.since_ms),
                     *(channel.state for channel in activity.channels),
                     *(runtime.state for runtime in activity.runtimes),
+                    *(
+                        "" if runtime.quota is None else runtime.quota.model_dump_json()
+                        for runtime in activity.runtimes
+                    ),
                     activity.usage.model_dump_json(),
                 )
             )

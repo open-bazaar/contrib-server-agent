@@ -160,6 +160,15 @@ async def _agent(ctx: Context) -> AsyncIterator[None]:
                     narrow=False,
                 )
             ),
+            service.section(
+                AgentSection(
+                    key="quota",
+                    src="/ui/agents/quota",
+                    column="side",
+                    permission=VIEW,
+                    order=15,
+                )
+            ),
         ):
             ctx.offer(_FLEET, fleet)
             ctx.offer(AGENTS, service)
