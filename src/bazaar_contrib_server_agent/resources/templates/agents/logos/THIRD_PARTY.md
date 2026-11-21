@@ -7,3 +7,4 @@ The channel and runtime logos in templates/agents/logos:
 - wecom.svg: TDesign Icons (Tencent, MIT) logo-wecom via Iconify
 - codex.svg: theSVG (MIT) codex-openai via Iconify
 - claudecode.svg: theSVG (MIT) claude-code via Iconify
+- antigravity.svg: Google Antigravity mark from https://antigravity.google/assets/image/brand/antigravity-icon__full-color.svg (silhouette adapted to `currentColor`); the Antigravity mark is Google's

@@ -19,7 +19,8 @@
 .g.wecom { --brand: linear-gradient(160deg, #36a3ff, #0a6fd6); }
 .g.claudecode { --brand: linear-gradient(160deg, #e8916f, #c75f3a); }
 .g.codex { --brand: linear-gradient(160deg, #2b2b2b, #111); }
-.g:not(.telegram, .lark, .wecom, .claudecode, .codex) { color: var(--muted); }
+.g.antigravity { --brand: linear-gradient(160deg, #4f94ff, #1a73e8); }
+.g:not(.telegram, .lark, .wecom, .claudecode, .codex, .antigravity) { color: var(--muted); }
 
 /* filters over the list */
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
