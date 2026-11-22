@@ -156,7 +156,11 @@
 .fact { display: inline-flex; align-items: center; gap: 7px; height: 26px; max-width: 100%; min-width: 0; padding: 0 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); font-size: 12.5px; line-height: 15px; color: var(--text-2); white-space: nowrap; }
 .fact b { color: var(--text); font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fact > svg { width: 13px; height: 13px; color: var(--muted); flex: none; }
-.fact .then { display: inline-grid; place-items: center; color: var(--faint); margin: 0 2px; }
+.fact.chain { height: auto; min-height: 26px; padding: 4px 10px; flex-wrap: wrap; gap: 4px 7px; white-space: normal; }
+.fact.chain .hop { display: inline-flex; align-items: center; max-width: 100%; min-width: 0; white-space: nowrap; }
+.fact.chain .g { margin-right: 7px; }
+.fact.chain .meta { flex: none; margin-left: 4px; }
+.fact .then { display: inline-grid; flex: none; place-items: center; color: var(--faint); margin: 0 7px 0 0; }
 .fact .then svg { width: 11px; height: 11px; }
 .detail .tabs { margin: 16px -28px 0; }
 .detail .tabs a, .detail .tabs button { flex: none; text-decoration: none; border: 0; background: none; font: inherit; line-height: 20px; white-space: nowrap; cursor: pointer; }
