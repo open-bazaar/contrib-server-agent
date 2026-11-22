@@ -25,7 +25,7 @@
         <span class="fact">{{ m.logo(provider.kind) }}<b>{{ (link.identity.name or link.identity.id) if link and link.identity else "—" }}</b></span>
         {% endfor %}
         {% if agent.harness %}
-        <span class="fact">{% for provider in agent.harness %}{% if not loop.first %}<span class="then">{% include "agents/icons/chevron-right.svg" %}</span>{% endif %}{{ m.logo(provider.kind) }}<b>{{ provider["values"].get("model") or t.text("agents.model.default") }}</b>{% if provider["values"].get("effort") %} · {{ provider["values"].get("effort") }}{% endif %}{% if not loop.first %} · {{ t.text("agents.standby") }}{% endif %}{% endfor %}</span>
+        <span class="fact chain">{% for provider in agent.harness %}<span class="hop">{% if not loop.first %}<span class="then">{% include "agents/icons/chevron-right.svg" %}</span>{% endif %}{{ m.logo(provider.kind) }}<b>{{ provider["values"].get("model") or t.text("agents.model.default") }}</b>{% if provider["values"].get("effort") or not loop.first %} <span class="meta">{% if provider["values"].get("effort") %}· {{ provider["values"].get("effort") }}{% endif %}{% if provider["values"].get("effort") and not loop.first %} {% endif %}{% if not loop.first %}· {{ t.text("agents.standby") }}{% endif %}</span>{% endif %}</span>{% endfor %}</span>
         {% endif %}
         <span class="fact">{% include "agents/icons/monitor.svg" %}{{ t.text("agents.runs_on") }} <b>{{ row.computer.name if row.computer else "—" }}</b></span>
         <span class="fact">{{ t.text("agents.mode." ~ agent.mode) }}</span>

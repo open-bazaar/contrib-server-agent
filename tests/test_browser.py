@@ -130,6 +130,28 @@ async def test_an_agent_is_made_changed_read_shared_and_removed(
                     "iframe[src^='/ui/agents/']:not([src*='working'])"
                 )
                 await expect(agent.locator(".profile h2")).to_contain_text("小满")
+                chain = agent.locator(".profile .fact.chain")
+                await expect(chain).to_be_visible()
+                assert await chain.evaluate("""chain => {
+                    const facts = chain.closest('.facts').getBoundingClientRect();
+                    const box = chain.getBoundingClientRect();
+                    const models = [...chain.querySelectorAll('.hop b')];
+                    return (
+                        models.length === 2
+                        && chain.scrollWidth <= chain.clientWidth
+                        && box.left >= facts.left - 1
+                        && box.right <= facts.right + 1
+                        && models.every(model => {
+                            const rect = model.getBoundingClientRect();
+                            return (
+                                rect.width > 0
+                                && model.scrollWidth <= model.clientWidth
+                                && rect.left >= box.left
+                                && rect.right <= box.right
+                            );
+                        })
+                    );
+                }""")
                 made = next(
                     one
                     for one in await asyncio.to_thread(agents_on, home)
@@ -296,3 +318,154 @@ async def test_an_agent_is_made_changed_read_shared_and_removed(
                 assert "阿满" not in names
             finally:
                 await browser.close()
+
+
+def _render_runtime_chain_page() -> str:
+    from importlib.resources import files
+
+    from jinja2 import Environment, PackageLoader
+
+    server_resources = Path(str(files("bazaar_contrib_server"))) / "resources"
+    agent_resources = Path(str(files("bazaar_contrib_server_agent"))) / "resources"
+    base_css = (server_resources / "static" / "base.css").read_text(encoding="utf-8")
+    agents_css = (agent_resources / "static" / "agents.css").read_text(encoding="utf-8")
+    detail_source = (
+        agent_resources / "templates" / "agents" / "detail.html"
+    ).read_text(encoding="utf-8")
+    profile_source = (
+        '{% import "agents/macros.html" as m with context %}\n'
+        + detail_source[
+            detail_source.index('<div class="profile">') : detail_source.index(
+                "{# its own tabs"
+            )
+        ]
+    )
+
+    environment = Environment(
+        loader=PackageLoader("bazaar_contrib_server_agent", "resources/templates"),
+        autoescape=True,
+    )
+    environment.filters["tint"] = lambda _value: "h3"
+
+    class _T:
+        def text(self, key: str, *_args: object) -> str:
+            return {
+                "agents.idle": "空闲",
+                "agents.standby": "备用",
+                "agents.model.default": "默认模型",
+                "agents.runs_on": "运行在",
+                "agents.mode.dangerous_individual": "个人助理 · 完全访问",
+            }.get(key, key)
+
+    agent = {
+        "id": "kana",
+        "name": "有马佳奈",
+        "mode": "dangerous_individual",
+        "channel": [
+            {"kind": "telegram", "connection": "telegram:0", "values": {}},
+        ],
+        "harness": [
+            {
+                "kind": "claudecode",
+                "connection": "claudecode:0",
+                "values": {"model": "opus", "effort": "medium"},
+            },
+            {
+                "kind": "antigravity",
+                "connection": "antigravity:0",
+                "values": {"model": "gemini-4-neon", "effort": "xhigh"},
+            },
+            {
+                "kind": "antigravity",
+                "connection": "antigravity:1",
+                "values": {"model": "claude-opus-5-5", "effort": "medium"},
+            },
+        ],
+    }
+    row = {
+        "state": "idle",
+        "kept": {"agent": agent},
+        "computer": {"name": "Apple M1 Max"},
+        "activity": {
+            "channels": [
+                {
+                    "connection": "telegram:0",
+                    "identity": {"id": "1", "name": "armslave_bot(有马加奈)"},
+                }
+            ]
+        },
+    }
+    profile_html = environment.from_string(profile_source).render(
+        agent=agent, row=row, t=_T()
+    )
+    return (
+        f"<style>{base_css}\n{agents_css}</style></head>"
+        f'<body><section class="content detail">{profile_html}</section></body></html>'
+    )
+
+
+async def test_runtime_chain_wraps_cleanly_on_narrow_screens():
+    page_body = await asyncio.to_thread(_render_runtime_chain_page)
+
+    async with async_playwright() as driver:
+        browser = await driver.chromium.launch()
+        try:
+            for layout, width, height, expect_single_row in (
+                ("wide", 1200, 400, True),
+                ("narrow", 390, 844, False),
+            ):
+                page = await browser.new_page(
+                    viewport={"width": width, "height": height}
+                )
+                await page.set_content(
+                    f'<!doctype html><html data-layout="{layout}"><head><meta charset="utf-8">'
+                    + page_body
+                )
+                metrics = await page.evaluate("""() => {
+                    const facts = document.querySelector('.facts').getBoundingClientRect();
+                    const chain = document.querySelector('.fact.chain');
+                    const box = chain.getBoundingClientRect();
+                    const hops = [...chain.querySelectorAll('.hop')].map(hop => {
+                        const r = hop.getBoundingClientRect();
+                        const b = hop.querySelector('b');
+                        const br = b.getBoundingClientRect();
+                        return {
+                            top: Math.round(r.top),
+                            inside: r.left >= box.left - 1 && r.right <= box.right + 1,
+                            model: b.textContent,
+                            modelWidth: br.width,
+                            modelClipped: b.scrollWidth > b.clientWidth,
+                            modelInside: br.left >= box.left - 1 && br.right <= box.right + 1,
+                        };
+                    });
+                    return {
+                        chainOverflow: chain.scrollWidth > chain.clientWidth,
+                        docOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+                        boxInsideFacts: box.left >= facts.left - 1 && box.right <= facts.right + 1,
+                        height: Math.round(box.height),
+                        hops,
+                    };
+                }""")
+                assert not metrics["chainOverflow"], metrics
+                assert not metrics["docOverflow"], metrics
+                assert metrics["boxInsideFacts"], metrics
+                assert [hop["model"] for hop in metrics["hops"]] == [
+                    "opus",
+                    "gemini-4-neon",
+                    "claude-opus-5-5",
+                ]
+                assert all(
+                    hop["inside"]
+                    and hop["modelInside"]
+                    and hop["modelWidth"] > 0
+                    and not hop["modelClipped"]
+                    for hop in metrics["hops"]
+                ), metrics
+                distinct_rows = {hop["top"] for hop in metrics["hops"]}
+                if expect_single_row:
+                    assert len(distinct_rows) == 1, metrics
+                    assert metrics["height"] == 26, metrics
+                else:
+                    assert len(distinct_rows) > 1, metrics
+        finally:
+            await browser.close()
