@@ -13,14 +13,35 @@
 {% else %}<span class="status on"><span class="lantern on"></span>{{ t.text("agents.idle") }}</span>{% endif %}
 {% endmacro %}
 
-{# where an agent talks: a line a channel, its logo and the bot's name as its connection reported it #}
-{% macro channels(row) %}
-<div class="prov">
-  {% for provider in row.kept.agent.channel %}
-  {% set link = (row.activity.channels | selectattr("connection", "equalto", provider.connection) | first | default(none)) if row.activity else none %}
-  <span class="p">{{ logo(provider.kind) }}<b>{{ (link.identity.name or link.identity.id) if link and link.identity else "—" }}</b></span>
-  {% else %}<span class="p none">—</span>{% endfor %}
+{# a window's length: so many days, hours or minutes #}
+{% macro period(window) -%}
+{%- set minutes = window.duration_minutes -%}
+{%- if window.name %}{{ window.name }} {% endif -%}
+{%- if minutes and minutes % 1440 == 0 %}{{ t.text("agents.quota.days", {"n": minutes // 1440}) }}{% elif minutes and minutes % 60 == 0 %}{{ t.text("agents.quota.hours", {"n": minutes // 60}) }}{% elif minutes %}{{ t.text("agents.quota.minutes", {"n": minutes}) }}{% endif -%}
+{%- endmacro %}
+
+{# logos in a line, clipped where the cell ends; the names behind them in a
+   panel a pointer's hover or a tap opens. The list is drawn again as agents
+   change: a panel pinned open stays open, one under the pointer shows again #}
+{% macro peek(key, label) %}
+<div class="prov" x-data='{ open: (window.peeked ??= new Set()).has({{ key | tojson }}), hover: false }' x-init='hover = matchMedia("(hover: hover)").matches && $el.matches(":hover"); $watch("open", on => on ? peeked.add({{ key | tojson }}) : peeked.delete({{ key | tojson }}))' :class="{ up: open || hover }" @pointerenter="hover = $event.pointerType == 'mouse'" @pointerleave="hover = false" @click.outside="open = false" @keydown.escape="open = false">
+  <button class="logos" type="button" :aria-expanded="open || hover" @click="open = !open" aria-label="{{ label }}">{{ caller("logos") }}</button>
+  <div class="peek" x-show="open || hover" x-cloak>{{ caller("names") }}</div>
 </div>
+{% endmacro %}
+
+{# where an agent talks: each channel's logo, and the bot's name as its connection reported it #}
+{% macro channels(row) %}
+{% if row.kept.agent.channel %}
+{% call(part) peek(ref(row.kept.agent.id) ~ ":channel", t.text("agents.column.channel")) %}
+{% for provider in row.kept.agent.channel %}
+{% if part == "logos" %}{{ logo(provider.kind) }}{% else %}
+{% set link = (row.activity.channels | selectattr("connection", "equalto", provider.connection) | first | default(none)) if row.activity else none %}
+<span class="p">{{ logo(provider.kind) }}<b>{{ (link.identity.name or link.identity.id) if link and link.identity else "—" }}</b></span>
+{% endif %}
+{% endfor %}
+{% endcall %}
+{% else %}<div class="prov"><span class="p none">—</span></div>{% endif %}
 {% endmacro %}
 
 {% macro quota(row, provider, detailed=false) %}
@@ -28,19 +49,13 @@
 {% if runtime and runtime.quota and runtime.quota.windows %}
 <div class="quota-readings">
   {% for window in runtime.quota.windows %}
-  {% set minutes = window.duration_minutes %}
   {% set pct = "%g" | format(window.remaining_pct | round(1)) %}
   {% set reset = detailed and window.resets_at_ms is not none %}
   <span class="quota-window">
     <span class="quota-ring" role="meter" aria-label="{{ t.text('agents.quota.title') }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pct }}" aria-valuetext="{{ t.text('agents.quota.remaining', {'pct': pct}) }}" style="--remaining: {{ pct }}%">{{ pct }}%</span>
-    {% if window.name or minutes or reset %}
+    {% if window.name or window.duration_minutes or reset %}
     <span class="quota-meta">
-      {% if window.name or minutes %}
-      <span class="quota-period">
-        {%- if window.name %}{{ window.name }} {% endif -%}
-        {%- if minutes and minutes % 1440 == 0 %}{{ t.text("agents.quota.days", {"n": minutes // 1440}) }}{% elif minutes and minutes % 60 == 0 %}{{ t.text("agents.quota.hours", {"n": minutes // 60}) }}{% elif minutes %}{{ t.text("agents.quota.minutes", {"n": minutes}) }}{% endif -%}
-      </span>
-      {% endif %}
+      {% if window.name or window.duration_minutes %}<span class="quota-period">{{ period(window) }}</span>{% endif %}
       {% if reset %}<span>{{ t.text("agents.quota.resets", {"when": window.resets_at_ms | moment}) }}</span>{% endif %}
     </span>
     {% endif %}
@@ -50,22 +65,27 @@
 {% else %}<div class="quota-readings">{{ t.text("agents.quota.unknown") }}</div>{% endif %}
 {% endmacro %}
 
-{# what an agent runs on, in the order it tries them: the first in use, the rest standing by #}
+{# what an agent runs on, in the order it tries them: each runtime's logo; the
+   model, whether it stands by and what quota it has left in the panel #}
 {% macro runtimes(row) %}
-<div class="prov runtimes">
-  {% for provider in row.kept.agent.harness %}
-  <div class="runtime-line">
-    <span class="p{% if not loop.first %} alt{% endif %}">
-      {{ logo(provider.kind) }}
-      <span class="runtime-model">
-        <b>{{ provider["values"].get("model") or t.text("agents.model.default") }}</b>
-        {% if not loop.first %}<em>{{ t.text("agents.standby") }}</em>{% endif %}
-      </span>
-    </span>
-    {{ quota(row, provider) }}
-  </div>
-  {% else %}<span class="p none">—</span>{% endfor %}
+{% if row.kept.agent.harness %}
+{% call(part) peek(ref(row.kept.agent.id) ~ ":runtime", t.text("agents.column.runtime")) %}
+{% for provider in row.kept.agent.harness %}
+{% if part == "logos" %}{{ logo(provider.kind) }}{% else %}
+{% set runtime = (row.activity.runtimes | selectattr("connection", "equalto", provider.connection) | first | default(none)) if row.activity else none %}
+<div class="runtime">
+  <span class="p{% if not loop.first %} alt{% endif %}">{{ logo(provider.kind) }}<b>{{ provider["values"].get("model") or t.text("agents.model.default") }}</b>{% if not loop.first %}<em>{{ t.text("agents.standby") }}</em>{% endif %}</span>
+  {% if runtime and runtime.quota and runtime.quota.windows %}
+  {% for window in runtime.quota.windows %}
+  {% set pct = "%g" | format(window.remaining_pct | round(1)) %}
+  <span class="reading"><span class="quota-ring" role="meter" aria-label="{{ t.text('agents.quota.title') }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pct }}" aria-valuetext="{{ t.text('agents.quota.remaining', {'pct': pct}) }}" style="--remaining: {{ pct }}%"></span><span>{{ period(window) }}</span><b>{{ pct }}%</b></span>
+  {% endfor %}
+  {% else %}<span class="reading none">{{ t.text("agents.quota.unknown") }}</span>{% endif %}
 </div>
+{% endif %}
+{% endfor %}
+{% endcall %}
+{% else %}<div class="prov"><span class="p none">—</span></div>{% endif %}
 {% endmacro %}
 
 {# today's tokens and what they cost #}
