@@ -469,3 +469,121 @@ async def test_runtime_chain_wraps_cleanly_on_narrow_screens():
                     assert len(distinct_rows) > 1, metrics
         finally:
             await browser.close()
+
+
+def _render_agent_rows_page() -> str:
+    from importlib.resources import files
+
+    from jinja2 import Environment, PackageLoader
+
+    server_resources = Path(str(files("bazaar_contrib_server"))) / "resources"
+    agent_resources = Path(str(files("bazaar_contrib_server_agent"))) / "resources"
+    base_css = (server_resources / "static" / "base.css").read_text(encoding="utf-8")
+    agents_css = (agent_resources / "static" / "agents.css").read_text(encoding="utf-8")
+
+    environment = Environment(
+        loader=PackageLoader("bazaar_contrib_server_agent", "resources/templates"),
+        autoescape=True,
+    )
+    for name in ("tint", "lasted", "tokens", "moment"):
+        environment.filters[name] = lambda value, *_args: str(value)
+
+    class _T:
+        def text(self, key: str, *_args: object) -> str:
+            return key
+
+    def window(minutes: int, pct: float) -> dict[str, object]:
+        return {
+            "name": "Gemini Models",
+            "duration_minutes": minutes,
+            "remaining_pct": pct,
+            "resets_at_ms": None,
+        }
+
+    def row(index: int, channels: int, runtimes: int) -> dict[str, object]:
+        kinds = ("telegram", "lark", "wecom")
+        harness = ("antigravity", "codex", "claudecode")
+        return {
+            "state": "idle",
+            "online": True,
+            "computer": {"name": "Apple M1 Max"},
+            "kept": {
+                "agent": {
+                    "id": f"agent-{index}",
+                    "name": f"智能体{index}",
+                    "mode": "dangerous_individual",
+                    "channel": [
+                        {"kind": kinds[i % 3], "connection": f"c:{i}", "values": {}}
+                        for i in range(channels)
+                    ],
+                    "harness": [
+                        {
+                            "kind": harness[i % 3],
+                            "connection": f"h:{i}",
+                            "values": {"model": f"model-{i}"},
+                        }
+                        for i in range(runtimes)
+                    ],
+                }
+            },
+            "activity": {
+                "channels": [
+                    {
+                        "connection": f"c:{i}",
+                        "identity": {"id": "1", "name": f"bot-{i}"},
+                    }
+                    for i in range(channels)
+                ],
+                "runtimes": [
+                    {
+                        "connection": f"h:{i}",
+                        "quota": {"windows": [window(300, 80), window(10080, 60)]},
+                    }
+                    for i in range(runtimes)
+                ],
+                "usage": {"input": 0, "output": 0, "cost": None},
+            },
+        }
+
+    rows = [row(0, 1, 1), row(1, 3, 3), row(2, 12, 12)]
+    rows_html = environment.get_template("agents/rows.html").render(
+        rows=rows, more=False, t=_T(), ref=str
+    )
+    return (
+        f"<style>{base_css}\n{agents_css}</style></head>"
+        f'<body><section class="content"><div class="card tbl">{rows_html}</div></section></body></html>'
+    )
+
+
+async def test_an_agent_row_keeps_its_height_however_many_channels_and_runtimes():
+    page_body = await asyncio.to_thread(_render_agent_rows_page)
+
+    async with async_playwright() as driver:
+        browser = await driver.chromium.launch()
+        try:
+            for layout, width, height in (("wide", 1440, 900), ("narrow", 390, 844)):
+                page = await browser.new_page(
+                    viewport={"width": width, "height": height}
+                )
+                await page.set_content(
+                    f'<!doctype html><html data-layout="{layout}"><head><meta charset="utf-8">'
+                    + page_body
+                )
+                metrics = await page.evaluate("""() => ({
+                    heights: [...document.querySelectorAll('.tr.row')].map(
+                        row => Math.round(row.getBoundingClientRect().height)),
+                    logos: [...document.querySelectorAll('.prov')].map(prov => {
+                        const cell = prov.getBoundingClientRect();
+                        const strip = prov.querySelector('.logos').getBoundingClientRect();
+                        return strip.left >= cell.left - 1 && strip.right <= cell.right + 1;
+                    }),
+                    panels: [...document.querySelectorAll('.peek')].map(
+                        peek => getComputedStyle(peek).display),
+                    docOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+                })""")
+                assert len(set(metrics["heights"])) == 1, (layout, metrics)
+                assert all(metrics["logos"]), (layout, metrics)
+                assert set(metrics["panels"]) == {"none"}, (layout, metrics)
+                assert not metrics["docOverflow"], (layout, metrics)
+        finally:
+            await browser.close()
